@@ -1,0 +1,19 @@
+[project]
+name = "wrong-answer-builder"
+version = "0.1.0"
+description = "학생 오답노트 자동 생성 시스템"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.34.0",
+    "pymupdf>=1.25.0",
+    "fpdf2>=2.8.0",
+    "pydantic>=2.10.0",
+    "python-multipart>=0.0.20",
+    "aiofiles>=24.1.0",
+    "sse-starlette>=2.2.0",
+]
+
+[build-system]
+requires = ["setuptools>=75.0"]
+build-backend = "setuptools.build_meta"

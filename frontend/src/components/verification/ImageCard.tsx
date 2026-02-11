@@ -1,30 +1,38 @@
-import { useSortable } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
-import { NumberEditor } from './NumberEditor'
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { NumberEditor } from "./NumberEditor";
 
 interface ImageCardProps {
-  id: number
-  number: number
-  imagePath: string
-  onNumberChange: (newNumber: number) => void
-  onDelete: () => void
+  id: number;
+  number: number;
+  imagePath: string;
+  onNumberChange: (newNumber: number) => void;
+  onDelete: () => void;
 }
 
-export function ImageCard({ id, number, imagePath, onNumberChange, onDelete }: ImageCardProps) {
+export function ImageCard({
+  id,
+  number,
+  imagePath,
+  onNumberChange,
+  onDelete,
+}: ImageCardProps) {
   const {
     attributes,
     listeners,
     setNodeRef,
+    setActivatorNodeRef,
     transform,
     transition,
     isDragging,
-  } = useSortable({ id })
+  } = useSortable({ id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
-  }
+    touchAction: "none" as const,
+  };
 
   return (
     <div
@@ -37,11 +45,13 @@ export function ImageCard({ id, number, imagePath, onNumberChange, onDelete }: I
       <div className="px-3 py-2 flex items-center justify-between border-b border-gray-100">
         <NumberEditor number={number} onSave={onNumberChange} />
         <button
+          ref={setActivatorNodeRef}
           {...attributes}
           {...listeners}
           className="p-1 text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing"
           title="드래그하여 순서 변경"
           data-testid={`drag-handle-${id}`}
+          style={{ touchAction: "none" }}
         >
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
             <path d="M8 6h2v2H8V6zm6 0h2v2h-2V6zM8 11h2v2H8v-2zm6 0h2v2h-2v-2zm-6 5h2v2H8v-2zm6 0h2v2h-2v-2z" />
@@ -55,7 +65,7 @@ export function ImageCard({ id, number, imagePath, onNumberChange, onDelete }: I
           alt={`문제 ${number}`}
           loading="lazy"
           className="w-full h-auto object-contain bg-gray-50"
-          style={{ maxHeight: '400px' }}
+          style={{ maxHeight: "400px" }}
         />
         <button
           onClick={onDelete}
@@ -64,11 +74,21 @@ export function ImageCard({ id, number, imagePath, onNumberChange, onDelete }: I
           title="삭제"
           data-testid={`delete-problem-${id}`}
         >
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          <svg
+            className="w-3.5 h-3.5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         </button>
       </div>
     </div>
-  )
+  );
 }

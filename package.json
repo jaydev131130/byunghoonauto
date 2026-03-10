@@ -2,7 +2,7 @@
   "name": "byunghoon-electron-shell",
   "private": true,
   "version": "0.1.0",
-  "description": "Electron packaging spike for Wrong Answer Builder",
+  "description": "Electron packaging for 조쌤오답노트",
   "main": "electron/main.cjs",
   "scripts": {
     "desktop:frontend:build": "npm --prefix frontend run build",
@@ -18,7 +18,7 @@
   },
   "build": {
     "appId": "com.jaydev.byunghoon",
-    "productName": "Wrong Answer Builder",
+    "productName": "조쌤오답노트",
     "asar": true,
     "directories": {
       "output": "dist-electron"
@@ -44,6 +44,7 @@
       }
     ],
     "mac": {
+      "icon": "electron/assets/조쌤오답노트.icns",
       "target": [
         "dmg"
       ],

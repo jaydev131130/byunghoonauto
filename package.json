@@ -6,8 +6,10 @@
   "main": "electron/main.cjs",
   "scripts": {
     "desktop:frontend:build": "npm --prefix frontend run build",
+    "desktop:backend:build:mac": "python3 -m PyInstaller --noconfirm --distpath dist-electron-resources --workpath build/pyinstaller packaging/electron-backend.spec",
     "desktop:dev": "electron .",
     "desktop:pack:dir": "electron-builder --dir",
+    "desktop:pack:mac": "electron-builder --mac dmg",
     "desktop:pack:win": "electron-builder --win nsis"
   },
   "devDependencies": {
@@ -41,6 +43,12 @@
         ]
       }
     ],
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.education"
+    },
     "win": {
       "target": [
         "nsis"

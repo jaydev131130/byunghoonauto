@@ -8,3 +8,6 @@ __pycache__/
 dist-electron/
 dist-electron-resources/
 node_modules/
+.venv-electron-build/
+.pyinstaller-config/
+build/

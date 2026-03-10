@@ -13,8 +13,12 @@ function repoRoot() {
   return path.resolve(__dirname, "..");
 }
 
-function bundledBackendExe() {
-  return path.join(process.resourcesPath, "backend", "byunghoon-backend.exe");
+function bundledBackendExecutableName() {
+  return process.platform === "win32" ? "byunghoon-backend.exe" : "byunghoon-backend";
+}
+
+function bundledBackendCommand() {
+  return path.join(process.resourcesPath, "backend", bundledBackendExecutableName());
 }
 
 function frontendDistPath() {
@@ -34,14 +38,14 @@ function resolveBackendLaunch() {
   };
 
   if (app.isPackaged) {
-    const exePath = bundledBackendExe();
-    if (!fs.existsSync(exePath)) {
+    const commandPath = bundledBackendCommand();
+    if (!fs.existsSync(commandPath)) {
       throw new Error(
-        `Bundled backend executable is missing: ${exePath}\n` +
+        `Bundled backend executable is missing: ${commandPath}\n` +
           "Build the Python backend separately and place it under dist-electron-resources/backend/."
       );
     }
-    return { command: exePath, args: [], cwd: path.dirname(exePath), env };
+    return { command: commandPath, args: [], cwd: path.dirname(commandPath), env };
   }
 
   const python =

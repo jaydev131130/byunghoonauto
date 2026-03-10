@@ -15,7 +15,7 @@
 | Backend | FastAPI (Python) |
 | Frontend | React + TypeScript + Tailwind CSS |
 | Database | SQLite (WAL 모드) |
-| PDF 생성 | ReportLab |
+| PDF 생성 | FPDF2 (NanumGothic 한글 폰트) |
 | 이미지 추출 | PyMuPDF (fitz) |
 | 번들러 | Vite |
 | 실행 | uvicorn (로컬 서버, 오프라인 동작) |
@@ -59,20 +59,48 @@ PDF 가져오기 → 이미지 추출 → 검증 → 오답노트 생성 → PDF
 
 ### 2단계: 이미지 검증
 - 추출된 이미지를 순서대로 확인
-- 문제 번호 수정, 순서 변경, 삭제 가능
+- 문제 번호 수정, 순서 변경(DnD), 삭제 가능
 - 2-column 레이아웃 기반 (좌상 → 좌하 → 우상 → 우하)
+- 추출 수치 표시: `이미지 수/문제 수 (%)`, 단원별 ✓/불일치 표시
+- **전체 검증** 버튼: DB ↔ 파일시스템 무결성 비교
+- **자동 복구**: 불일치 단원에 "복구" 버튼 → 원본 PDF에서 재추출
 
-### 3단계: 오답노트 생성 (2가지 방식)
+### 3단계: 오답노트 생성 (2가지 모드)
 
-#### 방식 A: 학생 중심 (개별)
-- 학생 관리 → 학생 선택 → 오답 입력
-- 학생별로 문제집/단원/번호를 개별 지정
+> **레이아웃**: 2컬럼 (메인 콘텐츠 + 히스토리 사이드바)
 
-#### 방식 B: 오답노트 중심 (일괄 생성)
-- 오답노트 생성 페이지에서 문제집 선택
-- 단원별 오답 번호 입력
-- 학생 복수 선택 → 일괄 생성
-- 생성 직후 바로 PDF 출력 가능
+#### 모드 A: 학생 중심 (기본 모드)
+```
+학생 선택 → 학생별 문제집 선택 → 단원별 오답 입력 → 생성
+```
+- 학생을 먼저 선택하고 해당 학생에 대해 문제집/오답 입력
+- **학생별로 다른 문제집 선택 가능** (예: 학생A는 수학1만, 학생B는 수학1+수학2)
+- 학생 탭 전환 시 해당 학생의 문제집 선택과 입력값 유지
+- "다른 학생에서 복사" 기능 (문제집 선택 + 오답 입력 모두 복사)
+- 적합한 상황: "이 학생이 어떤 문제를 틀렸지?"
+
+#### 모드 B: 문제집 중심
+```
+문제집 선택(복수) → 학생 선택 → 학생별 오답 입력 → 생성
+```
+- 문제집을 먼저 선택하고 모든 학생이 동일 문제집에서 오답 입력
+- 다중 문제집 지원 (칩 토글 UI)
+- 학생별 개별 오답 입력 (학생 탭)
+- 적합한 상황: "이 문제집에서 누가 뭘 틀렸지?"
+
+#### 모드 공통 정책
+- 모드 전환 시 입력 상태 초기화 (각 모드가 독립 state)
+- 동일한 API 사용: `POST /api/wrong-answer-sets/bulk-per-student`
+- 생성 완료 후 자동 히스토리 저장
+
+### 생성 히스토리
+
+- 오답노트 생성 시 자동 저장 (non-critical, 실패 시 무시)
+- **10일간 보관** (자동 만료 삭제)
+- 오른쪽 사이드바에 상시 표시 (HistoryPanel)
+- "불러오기" 시 해당 데이터에 맞는 모드로 자동 전환 + 데이터 복원
+- Legacy(동일 오답 전체 학생) + per-student(학생별 개별 오답) 포맷 호환
+- 다중 문제집 히스토리 지원 (problem_set_ids 배열)
 
 ### 4단계: PDF 출력
 
@@ -106,7 +134,7 @@ PDF 가져오기 → 이미지 추출 → 검증 → 오답노트 생성 → PDF
 
 ---
 
-## DB 스키마 (7개 테이블)
+## DB 스키마 (8개 테이블)
 
 ### problem_sets
 | 컬럼 | 타입 | 설명 |
@@ -168,6 +196,15 @@ PDF 가져오기 → 이미지 추출 → 검증 → 오답노트 생성 → PDF
 | chapter_id | INTEGER FK | chapters.id |
 | problem_numbers | TEXT (JSON) | 오답 번호 배열 |
 
+### creation_history
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| id | INTEGER PK | 자동 증가 |
+| title | TEXT | 생성 제목 |
+| problem_set_id | INTEGER | 대표 문제집 ID |
+| data | TEXT (JSON) | 전체 입력 데이터 (student_entries, problem_set_ids 등) |
+| created_at | TEXT | 생성일시 (10일 후 자동 삭제) |
+
 ### settings
 | 컬럼 | 타입 | 설명 |
 |------|------|------|
@@ -218,8 +255,24 @@ PDF 가져오기 → 이미지 추출 → 검증 → 오답노트 생성 → PDF
 | DELETE | `/api/wrong-answer-sets/:id` | 오답노트 삭제 |
 | GET | `/api/wrong-answer-sets/:id/entries` | 오답 항목 조회 |
 | PUT | `/api/wrong-answer-sets/:id/entries` | 오답 항목 저장 |
-| POST | `/api/wrong-answer-sets/bulk` | 일괄 생성 (복수 학생) |
+| POST | `/api/wrong-answer-sets/bulk` | 일괄 생성 (동일 오답, 복수 학생) |
+| POST | `/api/wrong-answer-sets/bulk-per-student` | 학생별 개별 오답 일괄 생성 |
 | GET | `/api/wrong-answer-sets/recent` | 최근 생성 10개 |
+
+### 무결성 검사 (Integrity)
+| 메서드 | 경로 | 설명 |
+|--------|------|------|
+| GET | `/api/chapters/:id/health` | 단원 무결성 검사 |
+| POST | `/api/chapters/:id/repair` | 단원 자동 복구 (PDF 재추출) |
+| GET | `/api/problem-sets/:id/health` | 문제집 전체 무결성 검사 |
+
+### 생성 히스토리 (Creation History)
+| 메서드 | 경로 | 설명 |
+|--------|------|------|
+| GET | `/api/creation-history` | 히스토리 목록 (10일간) |
+| POST | `/api/creation-history` | 히스토리 저장 |
+| GET | `/api/creation-history/:id` | 히스토리 상세 |
+| DELETE | `/api/creation-history/:id` | 히스토리 삭제 |
 
 ### PDF 생성
 | 메서드 | 경로 | 설명 |
@@ -248,9 +301,58 @@ PDF 가져오기 → 이미지 추출 → 검증 → 오답노트 생성 → PDF
 
 ---
 
+## 아키텍처 결정사항
+
+### 파일 순서 변경(Reorder) 안전성
+- **Staging directory 패턴**: .tmp 접미사 대신 임시 디렉토리에 먼저 이동 → 최종 위치로 이동
+- **2-pass DB 업데이트**: 음수 임시값(-1, -2, ...) → 양수 최종값 (UNIQUE constraint 회피)
+- **완전한 롤백**: `moved_to_final` 리스트로 실패 시 모든 파일 원복
+- **Path traversal 보호**: `_safe_path()` 헬퍼로 경로 검증
+
+### DnD(드래그앤드롭) 정책
+- **@dnd-kit** 사용 (core + sortable)
+- `PointerSensor` (activationConstraint: distance 8px)
+- `setActivatorNodeRef`로 드래그 핸들 정확한 등록
+- `touch-action: none`으로 브라우저 터치 이벤트 충돌 방지
+- **Optimistic state update**: UI 즉시 반영 → API 호출 → 서버 동기화
+- **동시 호출 방어**: loading 중 추가 reorder 차단
+
+### 무결성 검사 시스템
+- DB 레코드 ↔ 파일시스템 비교 (missing_files, orphan_files 감지)
+- 불일치 시 원본 PDF에서 자동 재추출 (repair)
+- 검증 페이지에서 시각적 피드백 (✓/빨간 표시)
+
+### 컴포넌트 아키텍처 (오답노트 생성)
+```
+WrongAnswerCreatePage (오케스트레이터)
+├── 모드 탭 (학생 중심 / 문제집 중심)
+├── StudentCenteredMode (독립 state)
+│   └── 학생 선택 → 학생별 문제집 → 오답 입력 → 생성
+├── ProblemSetCenteredMode (독립 state)
+│   └── 문제집 선택 → 학생 선택 → 오답 입력 → 생성
+├── HistoryPanel (우측 사이드바)
+└── Success Phase (PDF 생성/다운로드)
+```
+
+### 공유 모듈
+- `types/wrong-answer.ts`: 공유 인터페이스 (8개)
+- `utils/wrong-answer-helpers.ts`: parseNumbers(), getRelativeDate()
+
+---
+
 ## 시스템 요구사항
 
 - 오프라인 동작 (인터넷 불필요)
 - macOS, Windows 모두 지원
 - 데스크톱 브라우저 기준
 - `python main.py` 실행 시 자동 브라우저 오픈 (127.0.0.1:8000)
+
+---
+
+## 변경 이력
+
+| 날짜 | 변경 내용 |
+|------|----------|
+| 2026-02-09 | v1.0 초기 시스템 (추출 → 검증 → 생성 → PDF) |
+| 2026-02-10 | 무결성 검사/자동 복구, 히스토리 기능(10일 보관), 학생별 개별 오답 UX, 다중 문제집 지원, DnD 안전성 강화 |
+| 2026-02-11 | 오답노트 생성 모드 분리 (학생 중심/문제집 중심), 히스토리 사이드바 분리, 컴포넌트 아키텍처 리팩토링 |

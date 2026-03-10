@@ -1,5 +1,7 @@
+import type { ExtractionStatus } from '../../types/extraction'
+
 interface ExtractionProgressProps {
-  status: 'idle' | 'extracting' | 'done' | 'error' | 'cancelled'
+  status: ExtractionStatus
   currentChapter: string
   chaptersCompleted: number
   totalChapters: number
@@ -23,12 +25,25 @@ export function ExtractionProgress({
 }: ExtractionProgressProps) {
   if (status === 'idle') return null
 
-  const progressPercent = totalChapters > 0
-    ? Math.round((chaptersCompleted / totalChapters) * 100)
-    : 0
+  const progressPercent =
+    totalChapters > 0
+      ? Math.round((chaptersCompleted / totalChapters) * 100)
+      : 0
 
   return (
-    <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200" data-testid="extraction-progress">
+    <div
+      className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200"
+      data-testid="extraction-progress"
+    >
+      {/* ── Uploading ──────────────────────────────────────────────────── */}
+      {status === 'uploading' && (
+        <div className="flex items-center gap-3">
+          <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full" />
+          <span className="text-sm text-gray-700">파일 업로드 중...</span>
+        </div>
+      )}
+
+      {/* ── Extracting ─────────────────────────────────────────────────── */}
       {status === 'extracting' && (
         <>
           <div className="flex items-center justify-between mb-2">
@@ -36,22 +51,33 @@ export function ExtractionProgress({
             <button
               onClick={onCancel}
               className="text-sm text-red-600 hover:text-red-700"
-              data-testid="cancel-button"
+              data-testid="cancel-extraction-button"
             >
               취소
             </button>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
-            <div
-              className="bg-blue-600 h-3 rounded-full transition-all duration-300"
-              style={{ width: `${progressPercent}%` }}
-              data-testid="progress-bar"
-            />
-          </div>
+
+          {/* Progress bar — indeterminate when totalChapters is 0 */}
+          {totalChapters === 0 ? (
+            <div className="w-full bg-gray-200 rounded-full h-3 mb-2 overflow-hidden">
+              <div className="bg-blue-600 h-3 rounded-full animate-pulse w-full" />
+            </div>
+          ) : (
+            <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
+              <div
+                role="progressbar"
+                aria-valuenow={progressPercent}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                className="bg-blue-600 h-3 rounded-full transition-all duration-300"
+                style={{ width: `${progressPercent}%` }}
+                data-testid="progress-bar"
+              />
+            </div>
+          )}
+
           <div className="flex justify-between text-xs text-gray-500">
-            <span>
-              {currentChapter && `현재: ${currentChapter}`}
-            </span>
+            <span>{currentChapter && `현재: ${currentChapter}`}</span>
             <span>
               {chaptersCompleted}/{totalChapters} 단원 ({totalProblems}문제)
             </span>
@@ -59,10 +85,14 @@ export function ExtractionProgress({
         </>
       )}
 
+      {/* ── Done ───────────────────────────────────────────────────────── */}
       {status === 'done' && (
         <div className="text-center space-y-3">
-          <p className="text-green-600 font-medium" data-testid="done-message">
-            추출 완료 - {totalChapters}개 단원, {totalProblems}개 문제
+          <p
+            className="text-green-600 font-medium"
+            data-testid="done-message"
+          >
+            ✓ 추출 완료 — {totalChapters}개 단원, {totalProblems}개 문제
           </p>
           <div className="flex gap-3 justify-center">
             <a
@@ -81,10 +111,14 @@ export function ExtractionProgress({
         </div>
       )}
 
+      {/* ── Error ──────────────────────────────────────────────────────── */}
       {status === 'error' && (
         <div className="text-center space-y-3">
-          <p className="text-red-600 font-medium" data-testid="error-message">
-            오류: {errorMessage}
+          <p
+            className="text-red-600 font-medium"
+            data-testid="error-message"
+          >
+            ✗ 오류: {errorMessage}
           </p>
           <button
             onClick={onReset}
@@ -95,9 +129,10 @@ export function ExtractionProgress({
         </div>
       )}
 
+      {/* ── Cancelled ──────────────────────────────────────────────────── */}
       {status === 'cancelled' && (
         <div className="text-center space-y-3">
-          <p className="text-yellow-600 font-medium">추출이 취소되었습니다.</p>
+          <p className="text-yellow-600 font-medium">— 추출이 취소되었습니다.</p>
           <button
             onClick={onReset}
             className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm hover:bg-gray-300"

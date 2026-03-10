@@ -1,0 +1,64 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - heading "오답노트 빌더" [level=1] [ref=e6]
+    - navigation [ref=e7]:
+      - link "문제집 관리" [ref=e8] [cursor=pointer]:
+        - /url: /
+      - link "문제집 가져오기" [ref=e9] [cursor=pointer]:
+        - /url: /import
+      - link "학생 관리" [ref=e10] [cursor=pointer]:
+        - /url: /students
+      - link "오답노트 생성" [ref=e11] [cursor=pointer]:
+        - /url: /wrong-answers/create
+      - link "일괄 인쇄" [ref=e12] [cursor=pointer]:
+        - /url: /batch-print
+    - generic [ref=e13]: v0.1.0
+  - main [ref=e14]:
+    - generic [ref=e17]:
+      - generic [ref=e18]:
+        - generic [ref=e19]:
+          - heading "오답노트 생성" [level=1] [ref=e20]
+          - paragraph [ref=e21]: 문제집을 선택(복수 가능)하고, 학생별로 단원별 오답 번호를 입력합니다.
+        - generic [ref=e22]:
+          - button "학생 중심" [ref=e23]
+          - button "문제집 중심" [active] [ref=e24]
+        - generic [ref=e59]:
+          - heading "1. 문제집 선택" [level=2] [ref=e60]
+          - generic [ref=e61]:
+            - heading "문제집을 클릭하여 선택/해제하세요" [level=3] [ref=e62]
+            - button "쎈B 1-1(9단원, 630문제)" [ref=e64]:
+              - text: 쎈B 1-1
+              - generic [ref=e65]: (9단원, 630문제)
+        - generic [ref=e66]:
+          - generic [ref=e67]:
+            - heading "2. 학생 선택" [level=2] [ref=e68]
+            - generic [ref=e69]:
+              - button "전체 선택" [ref=e70]
+              - button "전체 해제" [ref=e71]
+          - generic [ref=e72]:
+            - button "김민수중3" [ref=e73]
+            - button "박준혁중2" [ref=e74]
+            - button "이서연중3" [ref=e75]
+        - generic [ref=e76]:
+          - heading "4. 생성" [level=2] [ref=e77]
+          - generic [ref=e78]:
+            - generic [ref=e79]:
+              - generic [ref=e80]: 제목 (선택)
+              - textbox "제목 (선택)" [ref=e81]:
+                - /placeholder: 오답노트 2026-02-11
+            - generic [ref=e82]: 문제집 선택, 학생 선택, 오답 입력을 완료해주세요.
+            - generic [ref=e83]:
+              - button "오답노트 생성" [disabled]
+      - complementary [ref=e42]:
+        - generic [ref=e43]:
+          - heading "최근 생성" [level=2] [ref=e44]
+          - paragraph [ref=e45]: 10일간 보관
+        - generic [ref=e47]:
+          - generic [ref=e48]:
+            - paragraph [ref=e49]: 다중문제집 테스트
+            - paragraph [ref=e50]: 쎈B 1-1
+          - generic [ref=e51]:
+            - generic [ref=e52]: 문제 5개 · 학생 2명 · 1일 전
+            - generic [ref=e53]:
+              - button "불러오기" [ref=e54]
+              - button "삭제" [ref=e55]

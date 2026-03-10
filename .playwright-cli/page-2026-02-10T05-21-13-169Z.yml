@@ -1,0 +1,498 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - heading "오답노트 빌더" [level=1] [ref=e6]
+    - navigation [ref=e7]:
+      - link "문제집 관리" [ref=e8] [cursor=pointer]:
+        - /url: /
+      - link "문제집 가져오기" [ref=e9] [cursor=pointer]:
+        - /url: /import
+      - link "학생 관리" [ref=e10] [cursor=pointer]:
+        - /url: /students
+      - link "오답노트 생성" [ref=e11] [cursor=pointer]:
+        - /url: /wrong-answers/create
+      - link "일괄 인쇄" [ref=e12] [cursor=pointer]:
+        - /url: /batch-print
+    - generic [ref=e13]: v0.1.0
+  - main [ref=e14]:
+    - generic [ref=e16]:
+      - generic [ref=e17]:
+        - generic [ref=e18]:
+          - heading "쎈B 1-1" [level=1] [ref=e19]
+          - paragraph [ref=e20]: 검증 및 순서 조정
+        - generic [ref=e21]:
+          - button "전체 검증" [ref=e22]
+          - button "일괄 변경" [ref=e23]
+          - link "목록으로" [ref=e24] [cursor=pointer]:
+            - /url: /
+      - generic [ref=e26]: "전체: 9개 단원 | 630/630문제 이미지 추출 (100%)"
+      - generic [ref=e27]:
+        - button "1단원 (51문제) ✓" [ref=e29]
+        - button "2단원 (58문제) ✓" [ref=e31]
+        - button "3단원 (54문제) ✓" [ref=e33]
+        - button "4단원 (98문제) ✓" [ref=e35]
+        - button "5단원 (81문제) ✓" [ref=e37]
+        - button "6단원 (72문제) ✓" [ref=e39]
+        - button "7단원 (88문제) ✓" [ref=e41]
+        - button "8단원 (51문제) ✓" [ref=e43]
+        - button "9단원 (77문제) ✓" [ref=e45]
+      - generic [ref=e46]:
+        - generic [ref=e47]:
+          - generic [ref=e48]:
+            - button "#1" [ref=e49] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e50]:
+              - img [ref=e51]
+          - generic:
+            - img "문제 1"
+            - button "삭제" [ref=e53]:
+              - img [ref=e54]
+        - generic [ref=e56]:
+          - generic [ref=e57]:
+            - button "#2" [ref=e58] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e59]:
+              - img [ref=e60]
+          - generic:
+            - img "문제 2"
+            - button "삭제" [ref=e62]:
+              - img [ref=e63]
+        - generic [ref=e65]:
+          - generic [ref=e66]:
+            - button "#3" [ref=e67] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e68]:
+              - img [ref=e69]
+          - generic:
+            - img "문제 3"
+            - button "삭제" [ref=e71]:
+              - img [ref=e72]
+        - generic [ref=e74]:
+          - generic [ref=e75]:
+            - button "#4" [ref=e76] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e77]:
+              - img [ref=e78]
+          - generic:
+            - img "문제 4"
+            - button "삭제" [ref=e80]:
+              - img [ref=e81]
+        - generic [ref=e83]:
+          - generic [ref=e84]:
+            - button "#5" [ref=e85] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e86]:
+              - img [ref=e87]
+          - generic:
+            - img "문제 5"
+            - button "삭제" [ref=e89]:
+              - img [ref=e90]
+        - generic [ref=e92]:
+          - generic [ref=e93]:
+            - button "#6" [ref=e94] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e95]:
+              - img [ref=e96]
+          - generic:
+            - img "문제 6"
+            - button "삭제" [ref=e98]:
+              - img [ref=e99]
+        - generic [ref=e101]:
+          - generic [ref=e102]:
+            - button "#7" [ref=e103] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e104]:
+              - img [ref=e105]
+          - generic:
+            - img "문제 7"
+            - button "삭제" [ref=e107]:
+              - img [ref=e108]
+        - generic [ref=e110]:
+          - generic [ref=e111]:
+            - button "#8" [ref=e112] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e113]:
+              - img [ref=e114]
+          - generic:
+            - img "문제 8"
+            - button "삭제" [ref=e116]:
+              - img [ref=e117]
+        - generic [ref=e119]:
+          - generic [ref=e120]:
+            - button "#9" [ref=e121] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e122]:
+              - img [ref=e123]
+          - generic:
+            - img "문제 9"
+            - button "삭제" [ref=e125]:
+              - img [ref=e126]
+        - generic [ref=e128]:
+          - generic [ref=e129]:
+            - button "#10" [ref=e130] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e131]:
+              - img [ref=e132]
+          - generic:
+            - img "문제 10"
+            - button "삭제" [ref=e134]:
+              - img [ref=e135]
+        - generic [ref=e137]:
+          - generic [ref=e138]:
+            - button "#11" [ref=e139] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e140]:
+              - img [ref=e141]
+          - generic:
+            - img "문제 11"
+            - button "삭제" [ref=e143]:
+              - img [ref=e144]
+        - generic [ref=e146]:
+          - generic [ref=e147]:
+            - button "#12" [ref=e148] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e149]:
+              - img [ref=e150]
+          - generic:
+            - img "문제 12"
+            - button "삭제" [ref=e152]:
+              - img [ref=e153]
+        - generic [ref=e155]:
+          - generic [ref=e156]:
+            - button "#13" [ref=e157] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e158]:
+              - img [ref=e159]
+          - generic:
+            - img "문제 13"
+            - button "삭제" [ref=e161]:
+              - img [ref=e162]
+        - generic [ref=e164]:
+          - generic [ref=e165]:
+            - button "#14" [ref=e166] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e167]:
+              - img [ref=e168]
+          - generic:
+            - img "문제 14"
+            - button "삭제" [ref=e170]:
+              - img [ref=e171]
+        - generic [ref=e173]:
+          - generic [ref=e174]:
+            - button "#15" [ref=e175] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e176]:
+              - img [ref=e177]
+          - generic:
+            - img "문제 15"
+            - button "삭제" [ref=e179]:
+              - img [ref=e180]
+        - generic [ref=e182]:
+          - generic [ref=e183]:
+            - button "#16" [ref=e184] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e185]:
+              - img [ref=e186]
+          - generic:
+            - img "문제 16"
+            - button "삭제" [ref=e188]:
+              - img [ref=e189]
+        - generic [ref=e191]:
+          - generic [ref=e192]:
+            - button "#17" [ref=e193] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e194]:
+              - img [ref=e195]
+          - generic:
+            - img "문제 17"
+            - button "삭제" [ref=e197]:
+              - img [ref=e198]
+        - generic [ref=e200]:
+          - generic [ref=e201]:
+            - button "#18" [ref=e202] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e203]:
+              - img [ref=e204]
+          - generic:
+            - img "문제 18"
+            - button "삭제" [ref=e206]:
+              - img [ref=e207]
+        - generic [ref=e209]:
+          - generic [ref=e210]:
+            - button "#19" [ref=e211] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e212]:
+              - img [ref=e213]
+          - generic:
+            - img "문제 19"
+            - button "삭제" [ref=e215]:
+              - img [ref=e216]
+        - generic [ref=e218]:
+          - generic [ref=e219]:
+            - button "#20" [ref=e220] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e221]:
+              - img [ref=e222]
+          - generic:
+            - img "문제 20"
+            - button "삭제" [ref=e224]:
+              - img [ref=e225]
+        - generic [ref=e227]:
+          - generic [ref=e228]:
+            - button "#21" [ref=e229] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e230]:
+              - img [ref=e231]
+          - generic:
+            - img "문제 21"
+            - button "삭제" [ref=e233]:
+              - img [ref=e234]
+        - generic [ref=e236]:
+          - generic [ref=e237]:
+            - button "#22" [ref=e238] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e239]:
+              - img [ref=e240]
+          - generic:
+            - img "문제 22"
+            - button "삭제" [ref=e242]:
+              - img [ref=e243]
+        - generic [ref=e245]:
+          - generic [ref=e246]:
+            - button "#23" [ref=e247] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e248]:
+              - img [ref=e249]
+          - generic:
+            - img "문제 23"
+            - button "삭제" [ref=e251]:
+              - img [ref=e252]
+        - generic [ref=e254]:
+          - generic [ref=e255]:
+            - button "#24" [ref=e256] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e257]:
+              - img [ref=e258]
+          - generic:
+            - img "문제 24"
+            - button "삭제" [ref=e260]:
+              - img [ref=e261]
+        - generic [ref=e263]:
+          - generic [ref=e264]:
+            - button "#25" [ref=e265] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e266]:
+              - img [ref=e267]
+          - generic:
+            - img "문제 25"
+            - button "삭제" [ref=e269]:
+              - img [ref=e270]
+        - generic [ref=e272]:
+          - generic [ref=e273]:
+            - button "#26" [ref=e274] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e275]:
+              - img [ref=e276]
+          - generic:
+            - img "문제 26"
+            - button "삭제" [ref=e278]:
+              - img [ref=e279]
+        - generic [ref=e281]:
+          - generic [ref=e282]:
+            - button "#27" [ref=e283] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e284]:
+              - img [ref=e285]
+          - generic:
+            - img "문제 27"
+            - button "삭제" [ref=e287]:
+              - img [ref=e288]
+        - generic [ref=e290]:
+          - generic [ref=e291]:
+            - button "#28" [ref=e292] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e293]:
+              - img [ref=e294]
+          - generic:
+            - img "문제 28"
+            - button "삭제" [ref=e296]:
+              - img [ref=e297]
+        - generic [ref=e299]:
+          - generic [ref=e300]:
+            - button "#29" [ref=e301] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e302]:
+              - img [ref=e303]
+          - generic:
+            - img "문제 29"
+            - button "삭제" [ref=e305]:
+              - img [ref=e306]
+        - generic [ref=e308]:
+          - generic [ref=e309]:
+            - button "#30" [ref=e310] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e311]:
+              - img [ref=e312]
+          - generic:
+            - img "문제 30"
+            - button "삭제" [ref=e314]:
+              - img [ref=e315]
+        - generic [ref=e317]:
+          - generic [ref=e318]:
+            - button "#31" [ref=e319] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e320]:
+              - img [ref=e321]
+          - generic:
+            - img "문제 31"
+            - button "삭제" [ref=e323]:
+              - img [ref=e324]
+        - generic [ref=e326]:
+          - generic [ref=e327]:
+            - button "#32" [ref=e328] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e329]:
+              - img [ref=e330]
+          - generic:
+            - img "문제 32"
+            - button "삭제" [ref=e332]:
+              - img [ref=e333]
+        - generic [ref=e335]:
+          - generic [ref=e336]:
+            - button "#33" [ref=e337] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e338]:
+              - img [ref=e339]
+          - generic:
+            - img "문제 33"
+            - button "삭제" [ref=e341]:
+              - img [ref=e342]
+        - generic [ref=e344]:
+          - generic [ref=e345]:
+            - button "#34" [ref=e346] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e347]:
+              - img [ref=e348]
+          - generic:
+            - img "문제 34"
+            - button "삭제" [ref=e350]:
+              - img [ref=e351]
+        - generic [ref=e353]:
+          - generic [ref=e354]:
+            - button "#35" [ref=e355] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e356]:
+              - img [ref=e357]
+          - generic:
+            - img "문제 35"
+            - button "삭제" [ref=e359]:
+              - img [ref=e360]
+        - generic [ref=e362]:
+          - generic [ref=e363]:
+            - button "#36" [ref=e364] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e365]:
+              - img [ref=e366]
+          - generic:
+            - img "문제 36"
+            - button "삭제" [ref=e368]:
+              - img [ref=e369]
+        - generic [ref=e371]:
+          - generic [ref=e372]:
+            - button "#37" [ref=e373] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e374]:
+              - img [ref=e375]
+          - generic:
+            - img "문제 37"
+            - button "삭제" [ref=e377]:
+              - img [ref=e378]
+        - generic [ref=e380]:
+          - generic [ref=e381]:
+            - button "#38" [ref=e382] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e383]:
+              - img [ref=e384]
+          - generic:
+            - img "문제 38"
+            - button "삭제" [ref=e386]:
+              - img [ref=e387]
+        - generic [ref=e389]:
+          - generic [ref=e390]:
+            - button "#39" [ref=e391] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e392]:
+              - img [ref=e393]
+          - generic:
+            - img "문제 39"
+            - button "삭제" [ref=e395]:
+              - img [ref=e396]
+        - generic [ref=e398]:
+          - generic [ref=e399]:
+            - button "#40" [ref=e400] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e401]:
+              - img [ref=e402]
+          - generic:
+            - img "문제 40"
+            - button "삭제" [ref=e404]:
+              - img [ref=e405]
+        - generic [ref=e407]:
+          - generic [ref=e408]:
+            - button "#41" [ref=e409] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e410]:
+              - img [ref=e411]
+          - generic:
+            - img "문제 41"
+            - button "삭제" [ref=e413]:
+              - img [ref=e414]
+        - generic [ref=e416]:
+          - generic [ref=e417]:
+            - button "#42" [ref=e418] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e419]:
+              - img [ref=e420]
+          - generic:
+            - img "문제 42"
+            - button "삭제" [ref=e422]:
+              - img [ref=e423]
+        - generic [ref=e425]:
+          - generic [ref=e426]:
+            - button "#43" [ref=e427] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e428]:
+              - img [ref=e429]
+          - generic:
+            - img "문제 43"
+            - button "삭제" [ref=e431]:
+              - img [ref=e432]
+        - generic [ref=e434]:
+          - generic [ref=e435]:
+            - button "#44" [ref=e436] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e437]:
+              - img [ref=e438]
+          - generic:
+            - img "문제 44"
+            - button "삭제" [ref=e440]:
+              - img [ref=e441]
+        - generic [ref=e443]:
+          - generic [ref=e444]:
+            - button "#45" [ref=e445] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e446]:
+              - img [ref=e447]
+          - generic:
+            - img "문제 45"
+            - button "삭제" [ref=e449]:
+              - img [ref=e450]
+        - generic [ref=e452]:
+          - generic [ref=e453]:
+            - button "#46" [ref=e454] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e455]:
+              - img [ref=e456]
+          - generic:
+            - img "문제 46"
+            - button "삭제" [ref=e458]:
+              - img [ref=e459]
+        - generic [ref=e461]:
+          - generic [ref=e462]:
+            - button "#47" [ref=e463] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e464]:
+              - img [ref=e465]
+          - generic:
+            - img "문제 47"
+            - button "삭제" [ref=e467]:
+              - img [ref=e468]
+        - generic [ref=e470]:
+          - generic [ref=e471]:
+            - button "#48" [ref=e472] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e473]:
+              - img [ref=e474]
+          - generic:
+            - img "문제 48"
+            - button "삭제" [ref=e476]:
+              - img [ref=e477]
+        - generic [ref=e479]:
+          - generic [ref=e480]:
+            - button "#49" [ref=e481] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e482]:
+              - img [ref=e483]
+          - generic:
+            - img "문제 49"
+            - button "삭제" [ref=e485]:
+              - img [ref=e486]
+        - generic [ref=e488]:
+          - generic [ref=e489]:
+            - button "#50" [ref=e490] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e491]:
+              - img [ref=e492]
+          - generic:
+            - img "문제 50"
+            - button "삭제" [ref=e494]:
+              - img [ref=e495]
+        - generic [ref=e497]:
+          - generic [ref=e498]:
+            - button "#51" [ref=e499] [cursor=pointer]
+            - button "드래그하여 순서 변경" [ref=e500]:
+              - img [ref=e501]
+          - generic:
+            - img "문제 51"
+            - button "삭제" [ref=e503]:
+              - img [ref=e504]
+      - status [ref=e506]

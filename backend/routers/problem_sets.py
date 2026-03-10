@@ -1,6 +1,8 @@
+import shutil
+
 from fastapi import APIRouter, HTTPException
 
-from backend.config import IMAGES_DIR
+from backend.config import IMAGES_DIR, UPLOADS_DIR
 from backend.database import get_db
 from backend.services.image_store import delete_problem_set_images
 from backend.services.integrity import check_problem_set_integrity
@@ -102,4 +104,9 @@ async def delete_problem_set(problem_set_id: int):
         db.commit()
 
     delete_problem_set_images(problem_set_id)
+
+    uploads_dir = UPLOADS_DIR / str(problem_set_id)
+    if uploads_dir.exists():
+        shutil.rmtree(uploads_dir)
+
     return {"status": "deleted"}

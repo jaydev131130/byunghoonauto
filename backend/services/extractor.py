@@ -43,7 +43,7 @@ def extract_chapter(pdf_path: str, output_dir: Path) -> Generator[dict, None, No
                 with open(filepath, "wb") as f:
                     f.write(img_data)
 
-                file_size = filepath.stat().st_size
+                file_size = len(img_data)
                 column = "left" if bbox[0] < MIDPOINT else "right"
 
                 yield {

@@ -3,6 +3,13 @@ import { useSearchParams } from 'react-router-dom'
 import MainLayout from '../components/layout/MainLayout'
 import Button from '../components/common/Button'
 import { api } from '../lib/api'
+import {
+  type BatchPrintMode,
+  getActiveBatchSetIds,
+  getDefaultStudentSetIds,
+  shouldUseBatchPdfRequest,
+  toggleSelectedId,
+} from './batchPrintRequest'
 
 interface Student {
   id: number
@@ -33,17 +40,13 @@ interface PdfResponse {
   download_url: string
 }
 
-interface StudentSelection {
-  studentId: number
-  setId: number | null
-}
-
 export default function BatchPrintPage() {
   const [searchParams] = useSearchParams()
 
   const [students, setStudents] = useState<Student[]>([])
   const [studentSets, setStudentSets] = useState<Record<number, WrongAnswerSet[]>>({})
-  const [selections, setSelections] = useState<StudentSelection[]>([])
+  const [activeMode, setActiveMode] = useState<BatchPrintMode>('recent')
+  const [selectedStudentSetIds, setSelectedStudentSetIds] = useState<Record<number, number[]>>({})
   const [spacerRatio, setSpacerRatio] = useState(1.0)
   const [includeDividers, setIncludeDividers] = useState(true)
   const [generating, setGenerating] = useState(false)
@@ -53,7 +56,7 @@ export default function BatchPrintPage() {
 
   // Recent sets state
   const [recentSets, setRecentSets] = useState<RecentSet[]>([])
-  const [selectedRecentIds, setSelectedRecentIds] = useState<Set<number>>(new Set())
+  const [selectedRecentIds, setSelectedRecentIds] = useState<number[]>([])
   const [loadingRecent, setLoadingRecent] = useState(true)
 
   // URL param set IDs
@@ -76,9 +79,12 @@ export default function BatchPrintPage() {
         // If URL params provided, auto-select matching recent sets
         if (urlSetIds.length > 0) {
           const urlIdSet = new Set(urlSetIds)
-          const matchingIds = new Set(
-            data.filter((rs) => urlIdSet.has(rs.id)).map((rs) => rs.id)
-          )
+          const matchingIds = data
+            .filter((rs) => urlIdSet.has(rs.id))
+            .map((rs) => rs.id)
+          if (matchingIds.length > 0) {
+            setActiveMode('recent')
+          }
           setSelectedRecentIds(matchingIds)
         }
       } catch {
@@ -105,109 +111,120 @@ export default function BatchPrintPage() {
   }, [])
 
   const fetchSetsForStudent = useCallback(async (studentId: number) => {
-    if (studentSets[studentId]) return
+    const cached = studentSets[studentId]
+    if (cached) return cached
+
     try {
       const data = await api.get<WrongAnswerSet[]>(`/students/${studentId}/wrong-answer-sets`)
-      setStudentSets((prev) => ({ ...prev, [studentId]: data }))
+      setStudentSets((prev) => {
+        if (prev[studentId]) return prev
+        return { ...prev, [studentId]: data }
+      })
+      return data
     } catch {
       // silently fail - student simply won't have sets to pick from
+      return []
     }
   }, [studentSets])
 
   const isStudentSelected = useCallback(
-    (studentId: number) => selections.some((s) => s.studentId === studentId),
-    [selections],
+    (studentId: number) => Object.prototype.hasOwnProperty.call(selectedStudentSetIds, studentId),
+    [selectedStudentSetIds],
   )
 
   const toggleStudent = useCallback(
-    (studentId: number) => {
+    async (studentId: number) => {
       if (isStudentSelected(studentId)) {
-        setSelections((prev) => prev.filter((s) => s.studentId !== studentId))
+        setSelectedStudentSetIds((prev) => {
+          const next = { ...prev }
+          delete next[studentId]
+          return next
+        })
+        setResult(null)
+        return
       } else {
-        fetchSetsForStudent(studentId)
-        const sets = studentSets[studentId]
-        const defaultSetId = sets && sets.length > 0 ? sets[0].id : null
-        setSelections((prev) => [...prev, { studentId, setId: defaultSetId }])
+        const sets = await fetchSetsForStudent(studentId)
+        setSelectedStudentSetIds((prev) => {
+          if (Object.prototype.hasOwnProperty.call(prev, studentId)) return prev
+          return {
+            ...prev,
+            [studentId]: getDefaultStudentSetIds(sets.map((set) => set.id)),
+          }
+        })
       }
       setResult(null)
     },
-    [isStudentSelected, fetchSetsForStudent, studentSets],
+    [isStudentSelected, fetchSetsForStudent],
   )
 
-  const updateSelectedSet = useCallback((studentId: number, setId: number) => {
-    setSelections((prev) =>
-      prev.map((s) => (s.studentId === studentId ? { ...s, setId } : s)),
-    )
+  const toggleStudentSet = useCallback((studentId: number, setId: number) => {
+    setSelectedStudentSetIds((prev) => ({
+      ...prev,
+      [studentId]: toggleSelectedId(prev[studentId] ?? [], setId),
+    }))
     setResult(null)
   }, [])
 
   const selectAll = useCallback(() => {
-    const allSelections = students.map((st) => {
-      fetchSetsForStudent(st.id)
-      const sets = studentSets[st.id]
-      const defaultSetId = sets && sets.length > 0 ? sets[0].id : null
-      return { studentId: st.id, setId: defaultSetId }
+    void Promise.all(
+      students.map(async (student) => {
+        const sets = await fetchSetsForStudent(student.id)
+        return [student.id, getDefaultStudentSetIds(sets.map((set) => set.id))] as const
+      }),
+    ).then((entries) => {
+      setSelectedStudentSetIds(Object.fromEntries(entries))
     })
-    setSelections(allSelections)
     setResult(null)
-  }, [students, studentSets, fetchSetsForStudent])
+  }, [students, fetchSetsForStudent])
 
   const deselectAll = useCallback(() => {
-    setSelections([])
+    setSelectedStudentSetIds({})
     setResult(null)
   }, [])
 
   const toggleRecentSet = useCallback((setId: number) => {
-    setSelectedRecentIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(setId)) {
-        next.delete(setId)
-      } else {
-        next.add(setId)
-      }
-      return next
-    })
+    setSelectedRecentIds((prev) => toggleSelectedId(prev, setId))
     setResult(null)
   }, [])
 
   const selectAllRecent = useCallback(() => {
-    setSelectedRecentIds(new Set(recentSets.map((rs) => rs.id)))
+    setSelectedRecentIds(recentSets.map((rs) => rs.id))
     setResult(null)
   }, [recentSets])
 
   const deselectAllRecent = useCallback(() => {
-    setSelectedRecentIds(new Set())
+    setSelectedRecentIds([])
     setResult(null)
   }, [])
 
-  // Combine student selections + recent set selections for PDF generation
-  const validSelections = selections.filter((s) => s.setId !== null)
-  const allSetIds = useMemo(() => {
-    const fromStudents = validSelections.map((s) => s.setId).filter((id): id is number => id !== null)
-    const fromRecent = [...selectedRecentIds]
-    const unique = [...new Set([...fromStudents, ...fromRecent])]
-    return unique
-  }, [validSelections, selectedRecentIds])
+  const selectedStudentCount = useMemo(
+    () => Object.keys(selectedStudentSetIds).length,
+    [selectedStudentSetIds],
+  )
+  const activeSetIds = useMemo(
+    () => getActiveBatchSetIds(activeMode, selectedRecentIds, selectedStudentSetIds),
+    [activeMode, selectedRecentIds, selectedStudentSetIds],
+  )
 
   const handleGenerate = async () => {
-    if (allSetIds.length === 0) return
+    if (activeSetIds.length === 0) return
 
     setGenerating(true)
     setError(null)
     setResult(null)
 
     try {
-      if (allSetIds.length === 1) {
-        const data = await api.post<PdfResponse>('/pdf/generate', {
-          wrong_answer_set_id: allSetIds[0],
+      if (shouldUseBatchPdfRequest(activeSetIds.length, includeDividers)) {
+        const data = await api.post<PdfResponse>('/pdf/batch', {
+          wrong_answer_set_ids: activeSetIds,
           spacer_ratio: spacerRatio,
+          include_dividers: includeDividers,
         })
         setResult(data)
       } else {
-        const data = await api.post<PdfResponse>('/pdf/batch', {
-          wrong_answer_set_ids: allSetIds,
+        const data = await api.post<PdfResponse>('/pdf/generate', {
+          wrong_answer_set_id: activeSetIds[0],
           spacer_ratio: spacerRatio,
-          include_dividers: includeDividers,
         })
         setResult(data)
       }
@@ -236,6 +253,41 @@ export default function BatchPrintPage() {
           </p>
         </div>
 
+        <div className="mb-6 rounded-xl border border-slate-200 bg-white p-2">
+          <div className="grid gap-2 md:grid-cols-2">
+            <button
+              type="button"
+              data-testid="mode-tab-recent"
+              onClick={() => setActiveMode('recent')}
+              className={`rounded-lg px-4 py-3 text-left transition-colors ${
+                activeMode === 'recent'
+                  ? 'bg-slate-900 text-white shadow-sm'
+                  : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <div className="text-sm font-semibold">최근 생성된 오답노트</div>
+              <div className={`mt-1 text-xs ${activeMode === 'recent' ? 'text-slate-200' : 'text-slate-500'}`}>
+                최근 만든 오답노트를 빠르게 골라 바로 인쇄합니다.
+              </div>
+            </button>
+            <button
+              type="button"
+              data-testid="mode-tab-students"
+              onClick={() => setActiveMode('students')}
+              className={`rounded-lg px-4 py-3 text-left transition-colors ${
+                activeMode === 'students'
+                  ? 'bg-slate-900 text-white shadow-sm'
+                  : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <div className="text-sm font-semibold">학생별 선택</div>
+              <div className={`mt-1 text-xs ${activeMode === 'students' ? 'text-slate-200' : 'text-slate-500'}`}>
+                학생별로 오답노트를 1개 이상 골라 묶어서 인쇄합니다.
+              </div>
+            </button>
+          </div>
+        </div>
+
         {error && (
           <div
             data-testid="batch-print-error"
@@ -245,182 +297,205 @@ export default function BatchPrintPage() {
           </div>
         )}
 
-        {/* Recent sets section */}
-        {!loadingRecent && recentSets.length > 0 && (
-          <div className="mb-6" data-testid="recent-sets-section">
-            <div className="rounded-lg border border-slate-200 bg-white p-4">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-slate-800">
-                  최근 생성된 오답노트
-                  {selectedRecentIds.size > 0 && (
-                    <span className="ml-2 text-sm font-normal text-slate-500">
-                      ({selectedRecentIds.size}개 선택)
-                    </span>
-                  )}
-                </h3>
-                <div className="flex gap-2">
-                  <Button size="sm" variant="secondary" onClick={selectAllRecent}>
-                    전체 선택
-                  </Button>
-                  <Button size="sm" variant="secondary" onClick={deselectAllRecent}>
-                    전체 해제
-                  </Button>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                {recentSets.map((rs) => {
-                  const selected = selectedRecentIds.has(rs.id)
-                  return (
-                    <label
-                      key={rs.id}
-                      data-testid={`recent-set-${rs.id}`}
-                      className={`flex items-center gap-3 rounded-md border p-3 cursor-pointer transition-colors ${
-                        selected
-                          ? 'border-blue-400 bg-blue-50'
-                          : 'border-slate-200 hover:bg-slate-50'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selected}
-                        onChange={() => toggleRecentSet(rs.id)}
-                        className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-slate-800">
-                            {rs.student_name}
-                          </span>
-                          {(rs.grade || rs.class_name) && (
-                            <span className="text-xs text-slate-400">
-                              {[rs.grade, rs.class_name].filter(Boolean).join(' ')}
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-xs text-slate-500 truncate">
-                          {rs.title ?? `오답노트 ${rs.id}`}
-                          <span className="ml-2 text-slate-400">
-                            {formatDate(rs.created_at)}
-                          </span>
-                        </div>
-                      </div>
-                    </label>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-        )}
-
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Left panel: student selection */}
           <div className="lg:col-span-2">
-            <div className="rounded-lg border border-slate-200 bg-white p-4">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-slate-800">학생별 선택</h3>
-                <div className="flex gap-2">
-                  <Button size="sm" variant="secondary" onClick={selectAll}>
-                    전체 선택
-                  </Button>
-                  <Button size="sm" variant="secondary" onClick={deselectAll}>
-                    전체 해제
-                  </Button>
+            {activeMode === 'recent' ? (
+              <div className="rounded-lg border border-slate-200 bg-white p-4" data-testid="recent-sets-section">
+                <div className="mb-4 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-800">최근 생성된 오답노트</h3>
+                    <p className="mt-1 text-sm text-slate-500">
+                      최근 생성한 오답노트만 빠르게 골라 바로 PDF로 만듭니다.
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="secondary" onClick={selectAllRecent}>
+                      전체 선택
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={deselectAllRecent}>
+                      전체 해제
+                    </Button>
+                  </div>
                 </div>
-              </div>
 
-              {loadingStudents && (
-                <div className="py-8 text-center text-sm text-slate-400">
-                  불러오는 중...
-                </div>
-              )}
+                {loadingRecent && (
+                  <div className="py-8 text-center text-sm text-slate-400">불러오는 중...</div>
+                )}
 
-              {!loadingStudents && students.length === 0 && (
-                <div className="py-8 text-center text-slate-400">
-                  <p className="text-sm">등록된 학생이 없습니다.</p>
-                </div>
-              )}
+                {!loadingRecent && recentSets.length === 0 && (
+                  <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center">
+                    <p className="text-sm text-slate-500">최근 생성된 오답노트가 없습니다.</p>
+                  </div>
+                )}
 
-              <div className="space-y-2">
-                {students.map((student) => {
-                  const selected = isStudentSelected(student.id)
-                  const sets = studentSets[student.id] ?? []
-                  const selection = selections.find((s) => s.studentId === student.id)
-
-                  return (
-                    <div
-                      key={student.id}
-                      data-testid={`student-row-${student.id}`}
-                      className={`rounded-md border p-3 transition-colors ${
-                        selected
-                          ? 'border-blue-400 bg-blue-50'
-                          : 'border-slate-200 hover:bg-slate-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
+                <div className="space-y-2">
+                  {recentSets.map((rs) => {
+                    const selected = selectedRecentIds.includes(rs.id)
+                    return (
+                      <label
+                        key={rs.id}
+                        data-testid={`recent-set-${rs.id}`}
+                        className={`flex items-center gap-3 rounded-md border p-3 cursor-pointer transition-colors ${
+                          selected
+                            ? 'border-blue-400 bg-blue-50'
+                            : 'border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
                         <input
                           type="checkbox"
-                          data-testid={`student-checkbox-${student.id}`}
                           checked={selected}
-                          onChange={() => toggleStudent(student.id)}
+                          onChange={() => toggleRecentSet(rs.id)}
                           className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                         />
-                        <div className="flex-1">
-                          <span className="text-sm font-medium text-slate-800">
-                            {student.name}
-                          </span>
-                          {student.grade && (
-                            <span className="ml-2 text-xs text-slate-400">
-                              {student.grade}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-slate-800">
+                              {rs.student_name}
                             </span>
-                          )}
-                          {student.class_name && (
-                            <span className="ml-1 text-xs text-slate-400">
-                              {student.class_name}
+                            {(rs.grade || rs.class_name) && (
+                              <span className="text-xs text-slate-400">
+                                {[rs.grade, rs.class_name].filter(Boolean).join(' ')}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs text-slate-500 truncate">
+                            {rs.title ?? `오답노트 ${rs.id}`}
+                            <span className="ml-2 text-slate-400">
+                              {formatDate(rs.created_at)}
                             </span>
-                          )}
+                          </div>
+                        </div>
+                      </label>
+                    )
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-slate-200 bg-white p-4">
+                <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-800">학생별 선택</h3>
+                    <p className="mt-1 text-sm text-slate-500">
+                      학생을 고른 뒤 오답노트를 여러 개까지 체크해서 함께 인쇄합니다.
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="secondary" onClick={selectAll}>
+                      전체 선택
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={deselectAll}>
+                      전체 해제
+                    </Button>
+                  </div>
+                </div>
+
+                {loadingStudents && (
+                  <div className="py-8 text-center text-sm text-slate-400">불러오는 중...</div>
+                )}
+
+                {!loadingStudents && students.length === 0 && (
+                  <div className="py-8 text-center text-slate-400">
+                    <p className="text-sm">등록된 학생이 없습니다.</p>
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  {students.map((student) => {
+                    const selected = isStudentSelected(student.id)
+                    const sets = studentSets[student.id] ?? []
+                    const selectedSetIds = selectedStudentSetIds[student.id] ?? []
+
+                    return (
+                      <div
+                        key={student.id}
+                        data-testid={`student-row-${student.id}`}
+                        className={`rounded-lg border p-3 transition-colors ${
+                          selected
+                            ? 'border-blue-400 bg-blue-50'
+                            : 'border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            data-testid={`student-checkbox-${student.id}`}
+                            checked={selected}
+                            onChange={() => {
+                              void toggleStudent(student.id)
+                            }}
+                            className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-slate-800">
+                                {student.name}
+                              </span>
+                              {(student.grade || student.class_name) && (
+                                <span className="text-xs text-slate-400">
+                                  {[student.grade, student.class_name].filter(Boolean).join(' ')}
+                                </span>
+                              )}
+                            </div>
+                            <p className="mt-1 text-xs text-slate-500">
+                              {selected
+                                ? `선택된 오답노트 ${selectedSetIds.length}개`
+                                : '학생을 선택하면 최신 오답노트가 기본 선택됩니다.'}
+                            </p>
+                          </div>
                         </div>
 
                         {selected && (
-                          <div className="flex items-center gap-2">
+                          <div className="mt-3 space-y-2 border-t border-blue-100 pt-3">
                             {sets.length === 0 ? (
-                              <span className="text-xs text-orange-500">
-                                오답노트 없음
-                              </span>
+                              <div className="rounded-md bg-white px-3 py-2 text-xs text-orange-600">
+                                선택 가능한 오답노트가 없습니다.
+                              </div>
                             ) : (
-                              <select
-                                data-testid={`set-select-${student.id}`}
-                                value={selection?.setId ?? ''}
-                                onChange={(e) =>
-                                  updateSelectedSet(student.id, Number(e.target.value))
-                                }
-                                className="rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-700 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
-                              >
-                                {sets.map((set) => (
-                                  <option key={set.id} value={set.id}>
-                                    {set.title ?? `오답노트 ${set.id}`}
-                                  </option>
-                                ))}
-                              </select>
+                              sets.map((set) => {
+                                const setSelected = selectedSetIds.includes(set.id)
+                                return (
+                                  <label
+                                    key={set.id}
+                                    className={`flex items-center gap-3 rounded-md border px-3 py-2 cursor-pointer transition-colors ${
+                                      setSelected
+                                        ? 'border-blue-300 bg-white'
+                                        : 'border-slate-200 bg-white/70 hover:bg-white'
+                                    }`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      data-testid={`student-set-checkbox-${student.id}-${set.id}`}
+                                      checked={setSelected}
+                                      onChange={() => toggleStudentSet(student.id, set.id)}
+                                      className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <div className="min-w-0 flex-1">
+                                      <div className="truncate text-sm font-medium text-slate-700">
+                                        {set.title ?? `오답노트 ${set.id}`}
+                                      </div>
+                                      <div className="text-xs text-slate-400">
+                                        {formatDate(set.created_at)}
+                                      </div>
+                                    </div>
+                                  </label>
+                                )
+                              })
                             )}
                           </div>
                         )}
                       </div>
-                    </div>
-                  )
-                })}
+                    )
+                  })}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
-          {/* Right panel: settings + generate */}
           <div className="lg:col-span-1">
             <div className="space-y-4">
-              {/* Settings card */}
               <div className="rounded-lg border border-slate-200 bg-white p-4">
                 <h3 className="mb-4 text-lg font-semibold text-slate-800">설정</h3>
 
-                {/* Spacer ratio slider */}
                 <div className="mb-4">
                   <label className="mb-1 block text-sm font-medium text-slate-700">
                     풀이 공간 비율
@@ -445,7 +520,6 @@ export default function BatchPrintPage() {
                   </div>
                 </div>
 
-                {/* Include dividers toggle */}
                 <div className="flex items-center justify-between">
                   <div>
                     <label className="text-sm font-medium text-slate-700">
@@ -474,32 +548,36 @@ export default function BatchPrintPage() {
                 </div>
               </div>
 
-              {/* Generate button card */}
               <div className="rounded-lg border border-slate-200 bg-white p-4">
-                <div className="mb-3 text-sm text-slate-600">
-                  선택된 오답노트:{' '}
-                  <span className="font-semibold text-slate-800">
-                    {allSetIds.length}개
-                  </span>
-                  {selectedRecentIds.size > 0 && validSelections.length > 0 && (
-                    <span className="ml-1 text-xs text-slate-400">
-                      (최근 {selectedRecentIds.size}개 + 학생별 {validSelections.length}개, 중복 제거)
-                    </span>
-                  )}
+                <div className="mb-4 rounded-lg bg-slate-50 px-3 py-3">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    현재 모드
+                  </div>
+                  <div className="mt-1 text-sm font-semibold text-slate-800">
+                    {activeMode === 'recent' ? '최근 생성된 오답노트' : '학생별 선택'}
+                  </div>
+                  <div className="mt-2 text-sm text-slate-600">
+                    선택된 오답노트{' '}
+                    <span className="font-semibold text-slate-800">{activeSetIds.length}개</span>
+                  </div>
+                  <div className="mt-1 text-xs text-slate-500">
+                    {activeMode === 'recent'
+                      ? `최근 목록에서 ${selectedRecentIds.length}개를 선택했습니다.`
+                      : `${selectedStudentCount}명의 학생에서 선택한 오답노트를 인쇄합니다.`}
+                  </div>
                 </div>
 
                 <Button
                   data-testid="generate-pdf-button"
                   size="lg"
                   className="w-full"
-                  disabled={generating || allSetIds.length === 0}
+                  disabled={generating || activeSetIds.length === 0}
                   onClick={handleGenerate}
                 >
                   {generating ? 'PDF 생성 중...' : 'PDF 생성'}
                 </Button>
               </div>
 
-              {/* Result card */}
               {result && (
                 <div
                   data-testid="pdf-result"

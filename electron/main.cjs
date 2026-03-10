@@ -1,13 +1,18 @@
 const { app, BrowserWindow, dialog } = require("electron");
 const { spawn } = require("node:child_process");
+const net = require("node:net");
 const path = require("node:path");
 const fs = require("node:fs");
 
 const HOST = "127.0.0.1";
-const PORT = process.env.BYUNGHOON_PORT || "18400";
-const BACKEND_URL = `http://${HOST}:${PORT}`;
+const DEFAULT_PORT = 18400;
 
 let backendProcess = null;
+let backendPort = Number(process.env.BYUNGHOON_PORT || DEFAULT_PORT);
+
+function backendUrl() {
+  return `http://${HOST}:${backendPort}`;
+}
 
 function repoRoot() {
   return path.resolve(__dirname, "..");
@@ -32,7 +37,7 @@ function resolveBackendLaunch() {
   const env = {
     ...process.env,
     BYUNGHOON_HOST: HOST,
-    BYUNGHOON_PORT: PORT,
+    BYUNGHOON_PORT: String(backendPort),
     BYUNGHOON_APP_DATA_DIR: path.join(app.getPath("userData"), "data"),
     BYUNGHOON_FRONTEND_DIST: frontendDistPath(),
   };
@@ -58,10 +63,32 @@ function resolveBackendLaunch() {
   };
 }
 
+async function findAvailablePort(preferredPort) {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.unref();
+    server.on("error", (error) => {
+      reject(error);
+    });
+    server.listen(preferredPort, HOST, () => {
+      const address = server.address();
+      const selectedPort =
+        address && typeof address === "object" ? address.port : preferredPort;
+      server.close((closeError) => {
+        if (closeError) {
+          reject(closeError);
+          return;
+        }
+        resolve(selectedPort);
+      });
+    });
+  });
+}
+
 async function waitForBackend() {
   for (let i = 0; i < 60; i += 1) {
     try {
-      const response = await fetch(`${BACKEND_URL}/docs`);
+      const response = await fetch(`${backendUrl()}/docs`);
       if (response.ok) {
         return;
       }
@@ -88,11 +115,14 @@ async function createMainWindow() {
     }
   });
 
-  await window.loadURL(BACKEND_URL);
+  await window.loadURL(backendUrl());
   window.once("ready-to-show", () => window.show());
 }
 
 async function startBackend() {
+  if (!process.env.BYUNGHOON_PORT) {
+    backendPort = await findAvailablePort(0);
+  }
   const launch = resolveBackendLaunch();
   backendProcess = spawn(launch.command, launch.args, {
     cwd: launch.cwd,

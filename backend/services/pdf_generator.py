@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import logging
 import platform
+import unicodedata
 import uuid
 from pathlib import Path
 
@@ -20,6 +21,10 @@ from backend.config import IMAGES_DIR, PDF_OUTPUT_DIR
 from backend.database import get_db
 
 logger = logging.getLogger(__name__)
+
+
+def _normalize_text(value: str) -> str:
+    return unicodedata.normalize("NFC", value)
 
 # ---------------------------------------------------------------------------
 # Layout constants (mm)
@@ -35,7 +40,7 @@ COLUMN_WIDTH = (PAGE_W - MARGIN_LEFT - MARGIN_RIGHT - COLUMN_GAP) / 2  # ~91.7mm
 
 HEADER_HEIGHT = 10.0  # mm reserved for page header text
 HEADER_FONT_SIZE = 9
-PROBLEM_LABEL_HEIGHT = 5.0  # mm for "N번" label above each image
+PROBLEM_LABEL_HEIGHT = 0.0  # remove the per-problem label row to save vertical space
 PROBLEM_LABEL_FONT_SIZE = 8
 DIVIDER_FONT_SIZE = 28
 
@@ -163,8 +168,8 @@ def _fetch_set_data(wrong_answer_set_id: int) -> dict:
                     continue
                 items.append(
                     {
-                        "problem_set_name": entry["problem_set_name"],
-                        "chapter_name": entry["chapter_name"],
+                        "problem_set_name": _normalize_text(entry["problem_set_name"]),
+                        "chapter_name": _normalize_text(entry["chapter_name"]),
                         "chapter_id": entry["chapter_id"],
                         "problem_set_id": entry["problem_set_id"],
                         "number": num,
@@ -175,7 +180,7 @@ def _fetch_set_data(wrong_answer_set_id: int) -> dict:
                 )
 
     return {
-        "student_name": ws_row["student_name"],
+        "student_name": _normalize_text(ws_row["student_name"]),
         "set_title": ws_row["title"] or "",
         "items": items,
     }
@@ -193,9 +198,8 @@ def _layout_items(
     """Place problem images in 2-column layout across pages.
 
     Each item gets:
-    1. A problem label ("N번") above the image
-    2. The image scaled to column width
-    3. A spacer below equal to image_height * spacer_ratio
+    1. The image scaled to column width
+    2. A spacer below equal to image_height * spacer_ratio
     """
     if not items:
         return
@@ -277,14 +281,6 @@ def _layout_items(
 
         x = _col_x(col)
         y = y_pos[col]
-
-        # Draw problem number label
-        pdf._set_font(PROBLEM_LABEL_FONT_SIZE, bold=False)
-        pdf.set_text_color(60, 60, 60)
-        pdf.set_xy(x, y)
-        pdf.cell(COLUMN_WIDTH, PROBLEM_LABEL_HEIGHT, f"{item['number']}번", align="L")
-        pdf.set_text_color(0, 0, 0)
-        y += PROBLEM_LABEL_HEIGHT
 
         # Draw image
         image_path = item["image_path"]

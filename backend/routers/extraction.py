@@ -39,7 +39,7 @@ class ExtractionResponse(BaseModel):
 
 def sanitize_filename(filename: str) -> str:
     name = Path(filename).name
-    name = unicodedata.normalize("NFKD", name)
+    name = unicodedata.normalize("NFC", name)
     name = re.sub(r"[\x00-\x1f\x7f]", "", name)
     name = name.replace("/", "").replace("\\", "")
     if not name.lower().endswith(".pdf"):
@@ -69,7 +69,7 @@ async def upload_and_extract(
     files: list[UploadFile] = File(...),
 ) -> ExtractionResponse:
     # 1. Validate name
-    name = name.strip()
+    name = unicodedata.normalize("NFC", name).strip()
     if not name or len(name) > 100:
         raise HTTPException(
             status_code=422,
@@ -155,7 +155,7 @@ async def upload_and_extract(
 
             staging_chapters: list[dict] = []
             for sort_order, safe_name in enumerate(safe_names):
-                chapter_name = Path(safe_name).stem
+                chapter_name = unicodedata.normalize("NFC", Path(safe_name).stem)
                 cursor = db.execute(
                     "INSERT INTO chapters (problem_set_id, name, source_filename, sort_order) VALUES (?, ?, ?, ?)",
                     (problem_set_id, chapter_name, safe_name, sort_order),

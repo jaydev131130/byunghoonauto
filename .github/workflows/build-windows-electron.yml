@@ -1,0 +1,71 @@
+name: Build Windows Electron App
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/build-windows-electron.yml"
+      - "backend/**"
+      - "desktop_server.py"
+      - "docs/electron-spike.md"
+      - "electron/**"
+      - "frontend/**"
+      - "main.py"
+      - "package.json"
+      - "packaging/electron-backend.spec"
+      - "requirements.txt"
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Install backend Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install pyinstaller
+
+      - name: Build backend executable
+        run: python -m PyInstaller packaging/electron-backend.spec --noconfirm --distpath dist-electron-resources
+
+      - name: Install Electron dependencies
+        run: npm install
+
+      - name: Build Windows Electron installer
+        run: npm run desktop:pack:win
+
+      - name: Upload Electron artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrong-answer-builder-electron-windows
+          path: |
+            dist-electron/*.exe
+            dist-electron/*.blockmap
+            dist-electron/latest*.yml
+          if-no-files-found: error

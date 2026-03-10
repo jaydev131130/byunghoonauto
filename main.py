@@ -1,3 +1,4 @@
+import os
 import webbrowser
 from pathlib import Path
 
@@ -21,7 +22,12 @@ from backend.routers import (
 
 app = FastAPI(title="Wrong Answer Builder", version="0.1.0")
 
-FRONTEND_DIST = Path(__file__).resolve().parent / "frontend" / "dist"
+FRONTEND_DIST = Path(
+    os.environ.get(
+        "BYUNGHOON_FRONTEND_DIST",
+        Path(__file__).resolve().parent / "frontend" / "dist",
+    )
+).resolve()
 
 
 @app.on_event("startup")

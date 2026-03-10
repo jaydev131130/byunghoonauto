@@ -5,3 +5,6 @@ __pycache__/
 *.pyc
 .env
 .DS_Store
+dist-electron/
+dist-electron-resources/
+node_modules/

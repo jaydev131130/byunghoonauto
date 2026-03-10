@@ -79,6 +79,18 @@ npm run dev
 
 프론트엔드 dev server는 `/api` 요청을 `localhost:8000`으로 프록시합니다.
 
+## Windows 패키징 스파이크
+
+Electron 기반 Windows 데스크톱 앱 스파이크는 아래 문서에 정리되어 있습니다.
+
+- `docs/electron-spike.md`
+
+이 스파이크는 현재 FastAPI + React 구조를 유지한 채:
+
+- Electron 창 안에서 기존 UI를 띄우고
+- 로컬 FastAPI 백엔드를 자동 실행하며
+- 패키징된 경우 사용자 데이터를 앱 데이터 디렉터리로 분리하는 방향을 검증합니다.
+
 ## 데이터 저장 위치
 
 모든 데이터는 프로젝트 루트의 `data/` 폴더에 저장됩니다.

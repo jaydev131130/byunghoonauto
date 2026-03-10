@@ -33,6 +33,7 @@ export function ImageCard({
     opacity: isDragging ? 0.5 : 1,
     touchAction: "none" as const,
   };
+  const imageSrc = `/images/${imagePath}?v=${id}-${number}`;
 
   return (
     <div
@@ -61,7 +62,7 @@ export function ImageCard({
 
       <div className="relative">
         <img
-          src={`/images/${imagePath}`}
+          src={imageSrc}
           alt={`문제 ${number}`}
           loading="lazy"
           className="w-full h-auto object-contain bg-gray-50"

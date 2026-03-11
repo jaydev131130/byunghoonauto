@@ -2,7 +2,7 @@
   "name": "byunghoon-electron-shell",
   "private": true,
   "version": "0.1.0",
-  "description": "Electron packaging for 조쌤오답노트",
+  "description": "Electron packaging for Jo Math",
   "main": "electron/main.cjs",
   "scripts": {
     "desktop:frontend:build": "npm --prefix frontend run build",
@@ -18,7 +18,7 @@
   },
   "build": {
     "appId": "com.jaydev.byunghoon",
-    "productName": "조쌤오답노트",
+    "productName": "Jo Math",
     "asar": true,
     "directories": {
       "output": "dist-electron"

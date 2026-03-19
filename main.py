@@ -20,7 +20,7 @@ from backend.routers import (
     creation_history,
 )
 
-app = FastAPI(title="Wrong Answer Builder", version="0.1.0")
+app = FastAPI(title="EasyJo", version="0.1.0")
 
 FRONTEND_DIST = Path(
     os.environ.get(

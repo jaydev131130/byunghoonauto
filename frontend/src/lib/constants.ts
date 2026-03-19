@@ -1,4 +1,4 @@
-export const APP_NAME = '오답노트 빌더'
+export const APP_NAME = 'EasyJo'
 
 export const NAV_ITEMS = [
   { label: '문제집 관리', path: '/' },

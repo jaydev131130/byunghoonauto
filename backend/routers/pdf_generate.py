@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import logging
-import re
+from pathlib import Path
+from urllib.parse import quote
 
 from fastapi import APIRouter, HTTPException
 from starlette.responses import FileResponse
@@ -16,7 +17,13 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["pdf"])
 
-_SAFE_FILENAME = re.compile(r"^[\w\-]+\.pdf$")
+
+def _is_safe_pdf_filename(filename: str) -> bool:
+    if not filename or Path(filename).name != filename:
+        return False
+    if not filename.lower().endswith(".pdf"):
+        return False
+    return not any(ord(char) < 32 for char in filename)
 
 
 @router.post("/api/pdf/generate")
@@ -37,7 +44,7 @@ async def generate_pdf(body: PdfGenerateRequest) -> PdfResponse:
 
     return PdfResponse(
         filename=filename,
-        download_url=f"/api/pdf/download/{filename}",
+        download_url=f"/api/pdf/download/{quote(filename)}",
     )
 
 
@@ -65,14 +72,14 @@ async def generate_batch(body: PdfBatchRequest) -> PdfResponse:
 
     return PdfResponse(
         filename=filename,
-        download_url=f"/api/pdf/download/{filename}",
+        download_url=f"/api/pdf/download/{quote(filename)}",
     )
 
 
-@router.get("/api/pdf/download/{filename}")
+@router.get("/api/pdf/download/{filename:path}")
 async def download_pdf(filename: str) -> FileResponse:
     """Download a generated PDF file."""
-    if not _SAFE_FILENAME.match(filename):
+    if not _is_safe_pdf_filename(filename):
         raise HTTPException(status_code=400, detail="잘못된 파일명입니다.")
 
     filepath = PDF_OUTPUT_DIR / filename

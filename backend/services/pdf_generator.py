@@ -11,8 +11,8 @@ from __future__ import annotations
 import json
 import logging
 import platform
+import re
 import unicodedata
-import uuid
 from pathlib import Path
 
 from fpdf import FPDF
@@ -22,9 +22,79 @@ from backend.database import get_db
 
 logger = logging.getLogger(__name__)
 
+_WINDOWS_FILENAME_REPLACEMENTS = str.maketrans(
+    {
+        "<": "＜",
+        ">": "＞",
+        ":": "：",
+        '"': "＂",
+        "/": "／",
+        "\\": "＼",
+        "|": "｜",
+        "?": "？",
+        "*": "＊",
+    }
+)
+
 
 def _normalize_text(value: str) -> str:
     return unicodedata.normalize("NFC", value)
+
+
+def _strip_wrong_answer_prefix(title: str) -> str:
+    normalized = _normalize_text(title).strip()
+    stripped = re.sub(r"^\s*오답노트\s*", "", normalized)
+    stripped = stripped.strip()
+    if stripped:
+        return stripped
+    if normalized.startswith("오답노트"):
+        return ""
+    return normalized
+
+
+def _build_pdf_title_label(title: str) -> str:
+    cleaned_title = _strip_wrong_answer_prefix(title).strip()
+    if not cleaned_title:
+        return "오답노트"
+    return f'오답노트 "{cleaned_title}"'
+
+
+def _sanitize_filename_title(title: str) -> str:
+    cleaned_title = _strip_wrong_answer_prefix(title).strip()
+    if not cleaned_title:
+        return ""
+
+    sanitized = cleaned_title.translate(_WINDOWS_FILENAME_REPLACEMENTS)
+    sanitized = re.sub(r"\s+", " ", sanitized).strip().rstrip(".")
+    return sanitized
+
+
+def _build_output_filename(title: str, output_dir: Path = PDF_OUTPUT_DIR) -> str:
+    sanitized_title = _sanitize_filename_title(title)
+    base_name = "오답노트"
+    if sanitized_title:
+        base_name = f"오답노트 “{sanitized_title}”"
+
+    candidate = f"{base_name}.pdf"
+    counter = 2
+    while (output_dir / candidate).exists():
+        candidate = f"{base_name} ({counter}).pdf"
+        counter += 1
+    return candidate
+
+
+def _build_batch_title(titles: list[str]) -> str:
+    cleaned_titles = []
+    for title in titles:
+        cleaned = _strip_wrong_answer_prefix(title).strip()
+        if cleaned and cleaned not in cleaned_titles:
+            cleaned_titles.append(cleaned)
+
+    if not cleaned_titles:
+        return ""
+    if len(cleaned_titles) == 1:
+        return cleaned_titles[0]
+    return f"{cleaned_titles[0]} 외 {len(cleaned_titles) - 1}건"
 
 # ---------------------------------------------------------------------------
 # Layout constants (mm)
@@ -349,7 +419,7 @@ def generate_wrong_answer_pdf(
 
     pdf = _WrongAnswerPDF()
 
-    prefix = f"{data['student_name']} | " if data["student_name"] else ""
+    prefix = f"{_build_pdf_title_label(data['set_title'])} | "
     _layout_items(pdf, data["items"], spacer_ratio, prefix)
 
     if not data["items"]:
@@ -363,7 +433,7 @@ def generate_wrong_answer_pdf(
             align="C",
         )
 
-    filename = f"wrong_answers_{wrong_answer_set_id}_{uuid.uuid4().hex[:8]}.pdf"
+    filename = _build_output_filename(data["set_title"])
     output_path = PDF_OUTPUT_DIR / filename
     pdf.output(str(output_path))
 
@@ -390,13 +460,16 @@ def generate_batch_pdf(
 
     pdf = _WrongAnswerPDF()
 
+    batch_title_candidates: list[str] = []
+
     for idx, set_id in enumerate(wrong_answer_set_ids):
         data = _fetch_set_data(set_id)
+        batch_title_candidates.append(data["set_title"])
 
         if include_dividers:
             _add_divider_page(pdf, data["student_name"])
 
-        prefix = f"{data['student_name']} | " if data["student_name"] else ""
+        prefix = f"{_build_pdf_title_label(data['set_title'])} | "
         _layout_items(pdf, data["items"], spacer_ratio, prefix)
 
         if not data["items"]:
@@ -410,7 +483,7 @@ def generate_batch_pdf(
                 align="C",
             )
 
-    filename = f"batch_{uuid.uuid4().hex[:8]}.pdf"
+    filename = _build_output_filename(_build_batch_title(batch_title_candidates))
     output_path = PDF_OUTPUT_DIR / filename
     pdf.output(str(output_path))
 

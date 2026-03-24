@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Button from "../common/Button";
 import { api } from "../../lib/api";
 import { parseNumbers } from "../../utils/wrong-answer-helpers";
+import { buildDefaultWrongAnswerTitle } from "../../utils/wrong-answer-title";
 import type {
   ProblemSetListItem,
   ChapterInfo,
@@ -68,11 +69,13 @@ export default function ProblemSetCenteredMode({
     Record<number, Record<number, string>>
   >({});
   const [title, setTitle] = useState("");
+  const [titleTouched, setTitleTouched] = useState(false);
 
   /* ---------- restore initialData ---------- */
   useEffect(() => {
     if (!initialData) return;
     setTitle(initialData.title);
+    setTitleTouched(Boolean(initialData.title));
     setSelectedPsIds(initialData.selectedPsIds);
     setPsChapters(initialData.psChapters);
     setSelectedStudentIds(initialData.selectedStudentIds);
@@ -237,14 +240,28 @@ export default function ProblemSetCenteredMode({
     [studentEntries],
   );
 
+  const autoTitle = useMemo(() => {
+    if (selectedStudentIds.length !== 1) {
+      return "";
+    }
+    const selectedStudent = students.find((student) => student.id === selectedStudentIds[0]);
+    return buildDefaultWrongAnswerTitle(selectedStudent);
+  }, [selectedStudentIds, students]);
+
+  useEffect(() => {
+    if (titleTouched) {
+      return;
+    }
+    setTitle(autoTitle);
+  }, [autoTitle, titleTouched]);
+
   const canSubmit =
     selectedPsIds.length > 0 && studentEntries.length > 0 && !submitting;
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
     await onSubmit({
-      title:
-        title.trim() || `오답노트 ${new Date().toISOString().slice(0, 10)}`,
+      title: title.trim() || autoTitle,
       studentEntries,
       selectedPsIds,
     });
@@ -573,9 +590,12 @@ export default function ProblemSetCenteredMode({
               id="wa-title"
               type="text"
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
-              placeholder={`오답노트 ${new Date().toISOString().slice(0, 10)}`}
+              placeholder={autoTitle || "비워두면 학생별로 날짜 + 학생이름으로 자동 생성"}
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => {
+                setTitleTouched(true);
+                setTitle(e.target.value);
+              }}
               data-testid="title-input"
             />
           </div>

@@ -9,6 +9,7 @@ import type {
 import { parseNumbers } from "../../utils/wrong-answer-helpers";
 import { api } from "../../lib/api";
 import Button from "../common/Button";
+import { buildDefaultWrongAnswerTitle } from "../../utils/wrong-answer-title";
 
 /* ------------------------------------------------------------------ */
 /*  Props                                                              */
@@ -62,6 +63,7 @@ export default function StudentCenteredMode({
 
   /* ---------- Title ---------- */
   const [title, setTitle] = useState("");
+  const [titleTouched, setTitleTouched] = useState(false);
 
   /* ---------- Loading ---------- */
   const [loadingChapters, setLoadingChapters] = useState(false);
@@ -246,6 +248,21 @@ export default function StudentCenteredMode({
     [studentEntries],
   );
 
+  const autoTitle = useMemo(() => {
+    if (selectedStudentIds.length !== 1) {
+      return "";
+    }
+    const selectedStudent = students.find((student) => student.id === selectedStudentIds[0]);
+    return buildDefaultWrongAnswerTitle(selectedStudent);
+  }, [selectedStudentIds, students]);
+
+  useEffect(() => {
+    if (titleTouched) {
+      return;
+    }
+    setTitle(autoTitle);
+  }, [autoTitle, titleTouched]);
+
   const allSelectedPsIds = useMemo(
     () => [
       ...new Set(
@@ -260,14 +277,13 @@ export default function StudentCenteredMode({
 
   const handleSubmit = useCallback(async () => {
     if (!canSubmit) return;
-    const defaultTitle = `오답노트 ${new Date().toISOString().slice(0, 10)}`;
-    const finalTitle = title.trim() || defaultTitle;
+    const finalTitle = title.trim() || autoTitle;
     await onSubmit({
       title: finalTitle,
       studentEntries,
       selectedPsIds: allSelectedPsIds,
     });
-  }, [canSubmit, title, studentEntries, allSelectedPsIds, onSubmit]);
+  }, [canSubmit, title, autoTitle, studentEntries, allSelectedPsIds, onSubmit]);
 
   /* ================================================================ */
   /*  RENDER                                                           */
@@ -592,9 +608,12 @@ export default function StudentCenteredMode({
               id="sc-wa-title"
               type="text"
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
-              placeholder={`오답노트 ${new Date().toISOString().slice(0, 10)}`}
+              placeholder={autoTitle || "비워두면 학생별로 날짜 + 학생이름으로 자동 생성"}
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => {
+                setTitleTouched(true);
+                setTitle(e.target.value);
+              }}
               data-testid="sc-title-input"
             />
           </div>

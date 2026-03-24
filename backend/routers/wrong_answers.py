@@ -13,6 +13,7 @@ from backend.models import (
     WrongAnswerEntrySaveRequest,
     WrongAnswerEntryResponse,
 )
+from backend.services.wrong_answer_title import resolve_wrong_answer_title
 
 router = APIRouter(tags=["wrong_answers"])
 
@@ -38,12 +39,17 @@ def list_sets_for_student(student_id: int) -> list[WrongAnswerSetResponse]:
 def create_set(body: WrongAnswerSetCreate) -> WrongAnswerSetResponse:
     with get_db() as db:
         student = db.execute(
-            "SELECT id FROM students WHERE id = ?", (body.student_id,)
+            "SELECT id, name, grade FROM students WHERE id = ?", (body.student_id,)
         ).fetchone()
         if not student:
             raise HTTPException(status_code=404, detail="학생을 찾을 수 없습니다.")
 
-        title = body.title if body.title else f"오답노트 {date.today().isoformat()}"
+        title = resolve_wrong_answer_title(
+            body.title,
+            student["name"],
+            student["grade"],
+            date.today(),
+        )
         cursor = db.execute(
             "INSERT INTO wrong_answer_sets (student_id, title) VALUES (?, ?)",
             (body.student_id, title),
@@ -68,19 +74,20 @@ def bulk_create_sets(body: BulkWrongAnswerSetCreate) -> dict:
     if not body.entries:
         raise HTTPException(status_code=422, detail="오답 항목을 1개 이상 입력해주세요.")
 
-    title = body.title if body.title else f"오답노트 {date.today().isoformat()}"
     created_ids: list[int] = []
 
     with get_db() as db:
+        students_by_id: dict[int, dict] = {}
         for sid in body.student_ids:
             student = db.execute(
-                "SELECT id FROM students WHERE id = ?", (sid,)
+                "SELECT id, name, grade FROM students WHERE id = ?", (sid,)
             ).fetchone()
             if not student:
                 raise HTTPException(
                     status_code=404,
                     detail=f"학생 ID {sid}을(를) 찾을 수 없습니다.",
                 )
+            students_by_id[sid] = dict(student)
 
         for entry in body.entries:
             chapter = db.execute(
@@ -93,6 +100,13 @@ def bulk_create_sets(body: BulkWrongAnswerSetCreate) -> dict:
                 )
 
         for sid in body.student_ids:
+            student = students_by_id[sid]
+            title = resolve_wrong_answer_title(
+                body.title,
+                student["name"],
+                student["grade"],
+                date.today(),
+            )
             cursor = db.execute(
                 "INSERT INTO wrong_answer_sets (student_id, title) VALUES (?, ?)",
                 (sid, title),
@@ -138,10 +152,11 @@ async def bulk_create_per_student(req: BulkPerStudentCreate):
         all_student_ids = [se.student_id for se in req.student_entries]
         placeholders = ",".join("?" * len(all_student_ids))
         existing = db.execute(
-            f"SELECT id FROM students WHERE id IN ({placeholders})",
+            f"SELECT id, name, grade FROM students WHERE id IN ({placeholders})",
             all_student_ids,
         ).fetchall()
-        existing_ids = {row["id"] for row in existing}
+        student_rows = {row["id"]: dict(row) for row in existing}
+        existing_ids = set(student_rows)
         missing = set(all_student_ids) - existing_ids
         if missing:
             raise HTTPException(
@@ -177,7 +192,13 @@ async def bulk_create_per_student(req: BulkPerStudentCreate):
             if not has_problems:
                 continue
 
-            title = req.title or "오답노트"
+            student = student_rows[student_entry.student_id]
+            title = resolve_wrong_answer_title(
+                req.title,
+                student["name"],
+                student["grade"],
+                date.today(),
+            )
             cursor = db.execute(
                 "INSERT INTO wrong_answer_sets (student_id, title) VALUES (?, ?)",
                 (student_entry.student_id, title),

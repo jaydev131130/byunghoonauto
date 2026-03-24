@@ -19,6 +19,7 @@ from fpdf import FPDF
 
 from backend.config import IMAGES_DIR, PDF_OUTPUT_DIR
 from backend.database import get_db
+from backend.services.wrong_answer_title import resolve_wrong_answer_title
 
 logger = logging.getLogger(__name__)
 
@@ -41,26 +42,15 @@ def _normalize_text(value: str) -> str:
     return unicodedata.normalize("NFC", value)
 
 
-def _strip_wrong_answer_prefix(title: str) -> str:
-    normalized = _normalize_text(title).strip()
-    stripped = re.sub(r"^\s*오답노트\s*", "", normalized)
-    stripped = stripped.strip()
-    if stripped:
-        return stripped
-    if normalized.startswith("오답노트"):
-        return ""
-    return normalized
-
-
 def _build_pdf_title_label(title: str) -> str:
-    cleaned_title = _strip_wrong_answer_prefix(title).strip()
+    cleaned_title = _normalize_text(title).strip()
     if not cleaned_title:
         return "오답노트"
-    return f'오답노트 "{cleaned_title}"'
+    return cleaned_title
 
 
 def _sanitize_filename_title(title: str) -> str:
-    cleaned_title = _strip_wrong_answer_prefix(title).strip()
+    cleaned_title = _normalize_text(title).strip()
     if not cleaned_title:
         return ""
 
@@ -73,7 +63,7 @@ def _build_output_filename(title: str, output_dir: Path = PDF_OUTPUT_DIR) -> str
     sanitized_title = _sanitize_filename_title(title)
     base_name = "오답노트"
     if sanitized_title:
-        base_name = f"오답노트 “{sanitized_title}”"
+        base_name = sanitized_title
 
     candidate = f"{base_name}.pdf"
     counter = 2
@@ -86,7 +76,7 @@ def _build_output_filename(title: str, output_dir: Path = PDF_OUTPUT_DIR) -> str
 def _build_batch_title(titles: list[str]) -> str:
     cleaned_titles = []
     for title in titles:
-        cleaned = _strip_wrong_answer_prefix(title).strip()
+        cleaned = _normalize_text(title).strip()
         if cleaned and cleaned not in cleaned_titles:
             cleaned_titles.append(cleaned)
 
@@ -95,6 +85,18 @@ def _build_batch_title(titles: list[str]) -> str:
     if len(cleaned_titles) == 1:
         return cleaned_titles[0]
     return f"{cleaned_titles[0]} 외 {len(cleaned_titles) - 1}건"
+
+
+def _build_page_header(title: str, problem_set_name: str, chapter_name: str) -> str:
+    section_parts = [
+        _normalize_text(problem_set_name).strip(),
+        _normalize_text(chapter_name).strip(),
+    ]
+    section_label = " ".join(part for part in section_parts if part)
+    page_title = _build_pdf_title_label(title)
+    if not section_label:
+        return page_title
+    return f"{page_title} <{section_label}>"
 
 # ---------------------------------------------------------------------------
 # Layout constants (mm)
@@ -198,7 +200,8 @@ def _fetch_set_data(wrong_answer_set_id: int) -> dict:
     """
     with get_db() as db:
         ws_row = db.execute(
-            "SELECT ws.id, ws.title, s.name AS student_name "
+            "SELECT ws.id, ws.title, ws.created_at, "
+            "s.name AS student_name, s.grade AS student_grade "
             "FROM wrong_answer_sets ws "
             "JOIN students s ON s.id = ws.student_id "
             "WHERE ws.id = ?",
@@ -251,7 +254,12 @@ def _fetch_set_data(wrong_answer_set_id: int) -> dict:
 
     return {
         "student_name": _normalize_text(ws_row["student_name"]),
-        "set_title": ws_row["title"] or "",
+        "set_title": resolve_wrong_answer_title(
+            ws_row["title"],
+            ws_row["student_name"],
+            ws_row["student_grade"],
+            ws_row["created_at"],
+        ),
         "items": items,
     }
 
@@ -263,7 +271,7 @@ def _layout_items(
     pdf: _WrongAnswerPDF,
     items: list[dict],
     spacer_ratio: float,
-    header_text_prefix: str,
+    title: str,
 ) -> None:
     """Place problem images in 2-column layout across pages.
 
@@ -315,7 +323,11 @@ def _layout_items(
         nonlocal col, y_pos, current_header
 
         # Determine header for this item
-        header = f"{header_text_prefix}{item['problem_set_name']} - {item['chapter_name']}"
+        header = _build_page_header(
+            title,
+            item["problem_set_name"],
+            item["chapter_name"],
+        )
 
         # Calculate image dimensions scaled to column width
         img_w = COLUMN_WIDTH
@@ -419,8 +431,7 @@ def generate_wrong_answer_pdf(
 
     pdf = _WrongAnswerPDF()
 
-    prefix = f"{_build_pdf_title_label(data['set_title'])} | "
-    _layout_items(pdf, data["items"], spacer_ratio, prefix)
+    _layout_items(pdf, data["items"], spacer_ratio, data["set_title"])
 
     if not data["items"]:
         pdf.add_page()
@@ -469,8 +480,7 @@ def generate_batch_pdf(
         if include_dividers:
             _add_divider_page(pdf, data["student_name"])
 
-        prefix = f"{_build_pdf_title_label(data['set_title'])} | "
-        _layout_items(pdf, data["items"], spacer_ratio, prefix)
+        _layout_items(pdf, data["items"], spacer_ratio, data["set_title"])
 
         if not data["items"]:
             pdf.add_page()

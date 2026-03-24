@@ -6,6 +6,13 @@ const fs = require("node:fs");
 
 const HOST = "127.0.0.1";
 const DEFAULT_PORT = 18400;
+const STABLE_USER_DATA_DIRNAME = "EasyJoData";
+const LEGACY_USER_DATA_DIRNAMES = [
+  "EasyJo",
+  "Jo Math",
+  "Wrong Answer Builder",
+  "조쌤오답노트",
+];
 
 let backendProcess = null;
 let backendPort = Number(process.env.BYUNGHOON_PORT || DEFAULT_PORT);
@@ -33,12 +40,41 @@ function frontendDistPath() {
   return path.join(repoRoot(), "frontend", "dist");
 }
 
+function stableUserDataPath() {
+  return path.join(app.getPath("appData"), STABLE_USER_DATA_DIRNAME);
+}
+
+function ensureStableAppDataDir() {
+  const stableRoot = app.getPath("userData");
+  const stableDataDir = path.join(stableRoot, "data");
+  const stableDbPath = path.join(stableDataDir, "app.db");
+
+  if (fs.existsSync(stableDbPath)) {
+    return stableDataDir;
+  }
+
+  for (const legacyDirName of LEGACY_USER_DATA_DIRNAMES) {
+    const legacyDataDir = path.join(app.getPath("appData"), legacyDirName, "data");
+    const legacyDbPath = path.join(legacyDataDir, "app.db");
+    if (!fs.existsSync(legacyDbPath)) {
+      continue;
+    }
+
+    fs.mkdirSync(stableRoot, { recursive: true });
+    fs.cpSync(legacyDataDir, stableDataDir, { recursive: true });
+    return stableDataDir;
+  }
+
+  fs.mkdirSync(stableDataDir, { recursive: true });
+  return stableDataDir;
+}
+
 function resolveBackendLaunch() {
   const env = {
     ...process.env,
     BYUNGHOON_HOST: HOST,
     BYUNGHOON_PORT: String(backendPort),
-    BYUNGHOON_APP_DATA_DIR: path.join(app.getPath("userData"), "data"),
+    BYUNGHOON_APP_DATA_DIR: ensureStableAppDataDir(),
     BYUNGHOON_FRONTEND_DIST: frontendDistPath(),
   };
 
@@ -148,6 +184,8 @@ function stopBackend() {
   backendProcess.kill();
   backendProcess = null;
 }
+
+app.setPath("userData", stableUserDataPath());
 
 app.whenReady().then(async () => {
   try {

@@ -10,6 +10,22 @@ from backend.services.integrity import check_problem_set_integrity
 router = APIRouter(prefix="/api/problem-sets", tags=["problem_sets"])
 
 
+def _delete_problem_set_rows(db, problem_set_id: int) -> None:
+    db.execute(
+        "DELETE FROM wrong_answers "
+        "WHERE chapter_id IN (SELECT id FROM chapters WHERE problem_set_id = ?)",
+        (problem_set_id,),
+    )
+    db.execute(
+        "DELETE FROM problems WHERE chapter_id IN (SELECT id FROM chapters WHERE problem_set_id = ?)",
+        (problem_set_id,),
+    )
+    db.execute(
+        "DELETE FROM chapters WHERE problem_set_id = ?", (problem_set_id,)
+    )
+    db.execute("DELETE FROM problem_sets WHERE id = ?", (problem_set_id,))
+
+
 @router.get("/{problem_set_id}/health")
 async def problem_set_health(problem_set_id: int):
     """Check integrity of all chapters in a problem set."""
@@ -93,14 +109,7 @@ async def delete_problem_set(problem_set_id: int):
         if not ps:
             raise HTTPException(status_code=404, detail="문제집을 찾을 수 없습니다.")
 
-        db.execute(
-            "DELETE FROM problems WHERE chapter_id IN (SELECT id FROM chapters WHERE problem_set_id = ?)",
-            (problem_set_id,),
-        )
-        db.execute(
-            "DELETE FROM chapters WHERE problem_set_id = ?", (problem_set_id,)
-        )
-        db.execute("DELETE FROM problem_sets WHERE id = ?", (problem_set_id,))
+        _delete_problem_set_rows(db, problem_set_id)
         db.commit()
 
     delete_problem_set_images(problem_set_id)

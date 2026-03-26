@@ -440,7 +440,7 @@ export default function WrongAnswerCreatePage() {
                 <p className="mb-3 text-xs text-green-700">
                   {pdfResult.filename}
                 </p>
-                <div className="flex gap-2">
+                <div className="flex">
                   <a
                     data-testid="pdf-download-link"
                     href={pdfResult.download_url}
@@ -448,15 +448,6 @@ export default function WrongAnswerCreatePage() {
                     className="inline-flex items-center justify-center rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700"
                   >
                     다운로드
-                  </a>
-                  <a
-                    data-testid="pdf-view-link"
-                    href={pdfResult.download_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center rounded-lg border border-green-300 bg-white px-4 py-2 text-sm font-medium text-green-700 transition-colors hover:bg-green-50"
-                  >
-                    새 탭에서 보기
                   </a>
                 </div>
               </div>

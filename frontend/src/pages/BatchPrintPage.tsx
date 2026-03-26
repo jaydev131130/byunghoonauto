@@ -596,15 +596,6 @@ export default function BatchPrintPage() {
                     >
                       다운로드
                     </a>
-                    <a
-                      data-testid="pdf-view-link"
-                      href={result.download_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center rounded-lg border border-green-300 bg-white px-4 py-2 text-sm font-medium text-green-700 transition-colors hover:bg-green-50"
-                    >
-                      새 탭에서 보기
-                    </a>
                   </div>
                 </div>
               )}

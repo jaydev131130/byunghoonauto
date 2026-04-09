@@ -10,6 +10,7 @@ import { parseNumbers } from "../../utils/wrong-answer-helpers";
 import { api } from "../../lib/api";
 import Button from "../common/Button";
 import { buildDefaultWrongAnswerTitle } from "../../utils/wrong-answer-title";
+import ProblemSetSearchDropdown from "./ProblemSetSearchDropdown";
 
 /* ------------------------------------------------------------------ */
 /*  Props                                                              */
@@ -435,38 +436,24 @@ export default function StudentCenteredMode({
               등록된 문제집이 없습니다.
             </div>
           ) : (
-            <div
-              className="flex flex-wrap gap-2"
-              data-testid="sc-problem-set-chips"
-            >
-              {problemSets.map((ps) => {
-                const isSelected = activeStudentPsIds.includes(ps.id);
-                return (
-                  <button
-                    key={ps.id}
-                    type="button"
-                    onClick={() =>
-                      toggleProblemSetForStudent(activeStudentId, ps.id)
-                    }
-                    disabled={loadingChapters}
-                    className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
-                      isSelected
-                        ? "bg-indigo-600 text-white"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    } ${loadingChapters ? "opacity-50 cursor-wait" : ""}`}
-                    data-testid={`sc-ps-chip-${activeStudentId}-${ps.id}`}
-                  >
-                    {ps.name}
-                    <span
-                      className={`ml-1 text-xs ${
-                        isSelected ? "text-indigo-200" : "text-gray-400"
-                      }`}
-                    >
-                      ({ps.chapter_count}단원, {ps.total_problems}문제)
-                    </span>
-                  </button>
-                );
-              })}
+            <div data-testid="sc-problem-set-chips">
+              <ProblemSetSearchDropdown
+                problemSets={problemSets}
+                multiple
+                selectedIds={activeStudentPsIds}
+                onToggle={(psId) =>
+                  toggleProblemSetForStudent(activeStudentId, psId)
+                }
+                disabled={loadingChapters}
+                loading={loadingPs}
+                placeholder="문제집을 검색해서 선택하세요"
+                searchPlaceholder="문제집 이름으로 검색"
+                helperText="학생마다 다른 문제집 조합을 선택할 수 있습니다."
+                dataTestId={`sc-problem-set-search-${activeStudentId}`}
+                getOptionTestId={(psId) =>
+                  `sc-ps-chip-${activeStudentId}-${psId}`
+                }
+              />
             </div>
           )}
         </section>

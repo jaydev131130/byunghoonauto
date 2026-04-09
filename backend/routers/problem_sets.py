@@ -1,9 +1,11 @@
 import shutil
+import sqlite3
 
 from fastapi import APIRouter, HTTPException
 
 from backend.config import IMAGES_DIR, UPLOADS_DIR
 from backend.database import get_db
+from backend.models import ProblemSetUpdate
 from backend.services.image_store import delete_problem_set_images
 from backend.services.integrity import check_problem_set_integrity
 
@@ -98,6 +100,41 @@ async def get_problem_set(problem_set_id: int):
         "created_at": ps["created_at"],
         "chapters": chapter_list,
     }
+
+
+@router.put("/{problem_set_id}")
+async def update_problem_set(problem_set_id: int, body: ProblemSetUpdate):
+    new_name = body.name.strip()
+    if not new_name:
+        raise HTTPException(status_code=422, detail="문제집 이름을 입력해주세요.")
+
+    with get_db() as db:
+        ps = db.execute(
+            "SELECT id, source_path, created_at, updated_at FROM problem_sets WHERE id = ?",
+            (problem_set_id,),
+        ).fetchone()
+        if not ps:
+            raise HTTPException(status_code=404, detail="문제집을 찾을 수 없습니다.")
+
+        try:
+            db.execute(
+                "UPDATE problem_sets "
+                "SET name = ?, updated_at = datetime('now') "
+                "WHERE id = ?",
+                (new_name, problem_set_id),
+            )
+        except sqlite3.IntegrityError as exc:
+            raise HTTPException(
+                status_code=409,
+                detail="같은 이름의 문제집이 이미 있습니다.",
+            ) from exc
+
+        updated = db.execute(
+            "SELECT id, name, source_path, created_at, updated_at FROM problem_sets WHERE id = ?",
+            (problem_set_id,),
+        ).fetchone()
+
+    return dict(updated)
 
 
 @router.delete("/{problem_set_id}")

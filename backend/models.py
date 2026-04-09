@@ -10,6 +10,10 @@ class ProblemSetCreate(BaseModel):
     source_path: str
 
 
+class ProblemSetUpdate(BaseModel):
+    name: str
+
+
 class ChapterResponse(BaseModel):
     id: int
     problem_set_id: int

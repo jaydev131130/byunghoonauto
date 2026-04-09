@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../lib/api'
+import ProblemSetSearchDropdown from './ProblemSetSearchDropdown'
 
 interface ProblemSet {
   id: number
@@ -35,30 +36,21 @@ export function ProblemSetPicker({ value, onChange }: ProblemSetPickerProps) {
       <label className="block text-sm font-medium text-gray-700 mb-1">
         문제집 선택
       </label>
-      <select
-        value={value ?? ''}
-        onChange={(e) => {
-          const v = e.target.value
-          if (v) {
-            const ps = problemSets.find((p) => p.id === Number(v))
-            onChange(Number(v), ps?.name ?? '')
-          } else {
-            onChange(null, '')
-          }
-        }}
-        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        disabled={loading}
+      <div
+        className="rounded-md"
         data-testid="problem-set-picker"
       >
-        <option value="">
-          {loading ? '불러오는 중...' : '문제집을 선택하세요'}
-        </option>
-        {problemSets.map((ps) => (
-          <option key={ps.id} value={ps.id}>
-            {ps.name}
-          </option>
-        ))}
-      </select>
+        <ProblemSetSearchDropdown
+          problemSets={problemSets}
+          selectedId={value}
+          onSelect={onChange}
+          disabled={loading}
+          loading={loading}
+          placeholder="문제집을 선택하세요"
+          searchPlaceholder="문제집 이름으로 검색"
+          dataTestId="problem-set-picker-dropdown"
+        />
+      </div>
     </div>
   )
 }

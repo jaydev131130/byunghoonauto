@@ -4,6 +4,7 @@ import Button from "../common/Button";
 import { api } from "../../lib/api";
 import { parseNumbers } from "../../utils/wrong-answer-helpers";
 import { buildDefaultWrongAnswerTitle } from "../../utils/wrong-answer-title";
+import ProblemSetSearchDropdown from "./ProblemSetSearchDropdown";
 import type {
   ProblemSetListItem,
   ChapterInfo,
@@ -302,39 +303,29 @@ export default function ProblemSetCenteredMode({
           <div className="text-sm text-gray-400">등록된 문제집이 없습니다.</div>
         ) : (
           <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2">
-              문제집을 클릭하여 선택/해제하세요
-            </h3>
+            <div className="mb-2 text-sm font-medium text-gray-700">
+              문제집을 검색해서 선택/해제하세요
+            </div>
             <div
-              className="flex flex-wrap gap-2"
               data-testid="problem-set-chips"
             >
-              {problemSets.map((ps) => {
-                const isSelected = selectedPsIds.includes(ps.id);
-                return (
-                  <button
-                    key={ps.id}
-                    type="button"
-                    onClick={() => toggleProblemSet(ps.id)}
-                    disabled={loadingChapters}
-                    className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
-                      isSelected
-                        ? "bg-indigo-600 text-white"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    } ${loadingChapters ? "opacity-50 cursor-wait" : ""}`}
-                    data-testid={`ps-chip-${ps.id}`}
-                  >
-                    {ps.name}
-                    <span
-                      className={`ml-1 text-xs ${
-                        isSelected ? "text-indigo-200" : "text-gray-400"
-                      }`}
-                    >
-                      ({ps.chapter_count}단원, {ps.total_problems}문제)
-                    </span>
-                  </button>
-                );
-              })}
+              <ProblemSetSearchDropdown
+                problemSets={problemSets}
+                multiple
+                selectedIds={selectedPsIds}
+                onToggle={toggleProblemSet}
+                disabled={loadingChapters}
+                loading={loadingPs}
+                placeholder="문제집을 검색해서 선택하세요"
+                searchPlaceholder="문제집 이름으로 검색"
+                helperText={
+                  selectedPsIds.length > 0
+                    ? `${selectedPsIds.length}개 선택됨`
+                    : "여러 문제집을 한 번에 선택할 수 있습니다."
+                }
+                dataTestId="problem-set-search"
+                getOptionTestId={(psId) => `ps-chip-${psId}`}
+              />
             </div>
           </div>
         )}

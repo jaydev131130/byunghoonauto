@@ -4,7 +4,14 @@ import { ProblemSetCard } from '../components/problem-set/ProblemSetCard'
 import { useProblemSets } from '../hooks/useProblemSets'
 
 export default function ProblemSetListPage() {
-  const { problemSets, loading, error, fetchProblemSets, deleteProblemSet } = useProblemSets()
+  const {
+    problemSets,
+    loading,
+    error,
+    fetchProblemSets,
+    updateProblemSet,
+    deleteProblemSet,
+  } = useProblemSets()
 
   useEffect(() => {
     fetchProblemSets()
@@ -53,6 +60,7 @@ export default function ProblemSetListPage() {
                 chapterCount={ps.chapter_count ?? 0}
                 totalProblems={ps.total_problems ?? 0}
                 createdAt={ps.created_at}
+                onRename={updateProblemSet}
                 onDelete={deleteProblemSet}
               />
             ))}

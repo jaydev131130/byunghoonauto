@@ -2,7 +2,10 @@ import sqlite3
 import unittest
 
 from backend.database import _TABLES_SQL
-from backend.routers.problem_sets import _delete_problem_set_rows
+from fastapi import HTTPException
+
+from backend.models import ProblemSetUpdate
+from backend.routers.problem_sets import _delete_problem_set_rows, update_problem_set
 
 
 class ProblemSetDeletionTests(unittest.TestCase):
@@ -57,6 +60,80 @@ class ProblemSetDeletionTests(unittest.TestCase):
         self.assertEqual(remaining_chapters, 0)
         self.assertEqual(remaining_problems, 0)
         self.assertEqual(remaining_wrong_answers, 0)
+
+    def test_update_problem_set_renames_existing_problem_set(self) -> None:
+        self.conn.execute(
+            "INSERT INTO problem_sets (id, name, source_path) VALUES (1, '기존 이름', '/tmp/test.pdf')"
+        )
+        self.conn.commit()
+
+        original_get_db = update_problem_set.__globals__["get_db"]
+
+        class _DbContext:
+            def __init__(self, conn: sqlite3.Connection) -> None:
+                self.conn = conn
+
+            def __enter__(self) -> sqlite3.Connection:
+                return self.conn
+
+            def __exit__(self, exc_type, exc, tb) -> bool:
+                if exc_type:
+                    self.conn.rollback()
+                else:
+                    self.conn.commit()
+                return False
+
+        update_problem_set.__globals__["get_db"] = lambda: _DbContext(self.conn)
+        try:
+            result = _run_async(update_problem_set(1, ProblemSetUpdate(name="새 이름")))
+        finally:
+            update_problem_set.__globals__["get_db"] = original_get_db
+
+        self.assertEqual(result["name"], "새 이름")
+        stored_name = self.conn.execute(
+            "SELECT name FROM problem_sets WHERE id = 1"
+        ).fetchone()[0]
+        self.assertEqual(stored_name, "새 이름")
+
+    def test_update_problem_set_rejects_duplicate_name(self) -> None:
+        self.conn.execute(
+            "INSERT INTO problem_sets (id, name, source_path) VALUES (1, '문제집 A', '/tmp/a.pdf')"
+        )
+        self.conn.execute(
+            "INSERT INTO problem_sets (id, name, source_path) VALUES (2, '문제집 B', '/tmp/b.pdf')"
+        )
+        self.conn.commit()
+
+        original_get_db = update_problem_set.__globals__["get_db"]
+
+        class _DbContext:
+            def __init__(self, conn: sqlite3.Connection) -> None:
+                self.conn = conn
+
+            def __enter__(self) -> sqlite3.Connection:
+                return self.conn
+
+            def __exit__(self, exc_type, exc, tb) -> bool:
+                if exc_type:
+                    self.conn.rollback()
+                else:
+                    self.conn.commit()
+                return False
+
+        update_problem_set.__globals__["get_db"] = lambda: _DbContext(self.conn)
+        try:
+            with self.assertRaises(HTTPException) as ctx:
+                _run_async(update_problem_set(1, ProblemSetUpdate(name="문제집 B")))
+        finally:
+            update_problem_set.__globals__["get_db"] = original_get_db
+
+        self.assertEqual(ctx.exception.status_code, 409)
+
+
+def _run_async(coro):
+    import asyncio
+
+    return asyncio.run(coro)
 
 
 if __name__ == "__main__":

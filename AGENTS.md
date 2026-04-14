@@ -6,11 +6,18 @@
   - macOS `.app`
   - macOS `.dmg`
   - Windows `.exe`
+- Before any Windows `.exe` build, always check whether the git worktree is dirty and whether local commits are ahead of `origin/main`.
+- If there are uncommitted changes or unpushed commits, explicitly warn that GitHub Actions Windows builds use the pushed remote commit, so local changes will not be included in the `.exe`.
+- In that case, before triggering the Windows build, ask whether to:
+  - commit and push first, then build the Windows `.exe`, or
+  - proceed with the current remote commit knowing the new local changes will be missing from the `.exe`
+- If the user asks to commit and push first, commit only source changes unless the user explicitly asks to include generated artifacts.
 - For macOS builds, always rebuild the frontend first, then rebuild the packaged backend with:
   - `PYINSTALLER_CONFIG_DIR=/tmp/pyinstaller-config .venv-electron-build/bin/python -m PyInstaller --noconfirm --distpath dist-electron-resources --workpath build/pyinstaller packaging/electron-backend.spec`
 - After the backend bundle is rebuilt, build the macOS desktop artifacts with:
   - `npm run desktop:pack:mac`
 - For Windows `.exe`, use the existing GitHub Actions workflow in `.github/workflows/build-windows-electron.yml` when local Windows packaging is not available, then download the artifact into `artifacts/`.
+- Treat GitHub Actions Windows builds as builds of the pushed GitHub ref, not the current local filesystem state.
 - After `빌드해줘`, always report the exact output paths for `.app`, `.dmg`, and `.exe`.
 - After `빌드해줘`, always try to launch the freshly built `.app` so the user can test it immediately.
 - If GUI launch is blocked by the current environment, say that explicitly and provide the exact `.app` path plus the launch command:
